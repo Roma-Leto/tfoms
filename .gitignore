@@ -1,1 +1,4 @@
 /.idea/
+note.txt
+.gitignore
+db.sqlite3
