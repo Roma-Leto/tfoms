@@ -147,6 +147,8 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,  # Хранить 5 файлов
             'formatter': 'verbose',
         },
         'console': {
