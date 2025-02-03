@@ -1,7 +1,8 @@
 """
 Описание моделей базы данных для приложения обработки счетов Invoice
 """
-
+from datetime import datetime
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -17,10 +18,16 @@ class InvoiceDNRDetails(models.Model):
         verbose_name="Имя файла"  # Название поля
     )
     # Поле даты поступления счёта
-    date_of_invoice_receipt = models.DateField(
+    mouth_of_invoice_receipt = models.IntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
-        verbose_name="Дата счёта"  # Название поля
+        verbose_name="Месяц поступления счёта"  # Название поля
+    )
+    # Поле даты поступления счёта
+    year_of_invoice_receipt = models.IntegerField(
+        null=False,  # Поле не может быть NULL
+        blank=False,  # Поле не может быть пустым
+        verbose_name="Год поступления счёта"  # Название поля
     )
     # Поле даты отчётного периода
     date_of_reporting_period = models.DateField(
@@ -29,8 +36,11 @@ class InvoiceDNRDetails(models.Model):
         verbose_name="Дата отчётного периода"  # Название поля
     )
     # Поле кода территориального фонда
-    code_fund = models.CharField(
-        max_length=8,  # Максимум 8 символов
+    code_fund = models.OneToOneField(
+    "RegisterTerritorial",
+        on_delete=models.PROTECT,
+        to_field="code",
+        max_length=5,  # Максимум 8 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Код территориального фонда"  # Название поля
@@ -47,6 +57,25 @@ class InvoiceDNRDetails(models.Model):
         blank=False,  # Поле не может быть пустым
         verbose_name="Сумма счёта"  # Название поля
     )
+
+    class Meta:
+        pass
+
+    def __str__(self):
+        return self.invoice_number
+
+    @staticmethod
+    def clean_date_field(self):
+        data = self.cleaned_data['date_field']
+
+        try:
+            # Преобразуем строку в объект datetime
+            date_obj = datetime.strptime(data, "%d.%m.%Y").date()
+
+            # Возвращаем строку в формате YYYY-MM-DD
+            return date_obj.strftime("%Y-%m-%d")
+        except ValueError as e:
+            raise ValidationError(f"Неверный формат даты: {e}")
 
 
 class InvoiceAttachment(models.Model):
@@ -66,6 +95,7 @@ class InvoiceAttachment(models.Model):
     )
     # Поле Фамилии, Имени и Отчества пациента
     patients_name = models.CharField(
+        max_length=120,  # Максимум 120 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Фамилия, Имя и Отчество пациента"
@@ -78,7 +108,6 @@ class InvoiceAttachment(models.Model):
     )
     # Поле номера полиса медицинского страхования (ЕНП)
     policy_number = models.IntegerField(
-        max_length=16,  # Максимум 16 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         help_text="Номер полиса обязательного медицинского страхования "
@@ -87,21 +116,18 @@ class InvoiceAttachment(models.Model):
     )
     # Поле кода профиля медицинской помощи
     medical_care_profile_code = models.IntegerField(
-        max_length=5,  # Максимум 5 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Код профиля оказания медицинской помощи"  # Название поля
     )
     # Поле кода специальности врача
     doctors_specialty_code = models.IntegerField(
-        max_length=5,  # Максимум 5 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Кода специальности врача"  # Название поля
     )
     # Поле кода диагноза
     diagnosis = models.IntegerField(
-        max_length=5,  # Максимум 5 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         help_text="МКБ-10",  # Всплывающий текст подсказки
@@ -121,7 +147,6 @@ class InvoiceAttachment(models.Model):
     )
     # Поле кода результата лечения
     treatment_result_code = models.IntegerField(
-        max_length=5,  # Максимум 5 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Код результата лечения"  # Название поля
@@ -135,7 +160,6 @@ class InvoiceAttachment(models.Model):
     )
     # Поле объёма медицинской помощи
     volume_of_medical_care = models.IntegerField(
-        max_length=2,  # Максимум 5 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Объём медицинской помощи"  # Название поля
@@ -156,4 +180,17 @@ class InvoiceAttachment(models.Model):
         blank=False,  # Поле не может быть пустым
         help_text="Расходы на оказание медицинской помощи",
         verbose_name="Тариф"  # Название поля
+    )
+
+
+class RegisterTerritorial(models.Model):
+    code = models.IntegerField(
+        blank=False,
+        null=False,
+        verbose_name="Код субъекта",
+        unique=True
+    )
+    name = models.CharField(
+        max_length=127,
+        verbose_name="Название субъекта"
     )
