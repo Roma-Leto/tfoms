@@ -8,7 +8,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -19,7 +18,6 @@ SECRET_KEY = 'django-insecure-7058n%5*kp-^w&_=q0ss^a6=)*euok^&v7s2i2hs8ta_#3o_xn
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -65,9 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -76,9 +72,7 @@ DATABASES = {
     }
 }
 
-
 # Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -95,30 +89,60 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'ru-ru'
+LANGUAGE_CODE = 'ru-Ru'
 
 TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
-
+USE_L10N = False
 USE_TZ = True
 
 AUTH_USER_MODEL = 'users.User'
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+DATE_INPUT_FORMATS = ['%d.%m.%Y']  # Формат даты, например, 25-12-2023
+DATE_FORMAT = ['%d.%m.%Y']
+
+# region Настройка Redis
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        }
+    }
+}
+
+# endregion Настройка Redis
+
+# region Настройка Celery
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Europe/Moscow'  # Ваша временная зона
+# endregion Настройка Celery
 
 # region Настройка логирования проекта
 
@@ -131,7 +155,8 @@ if not os.path.exists(LOG_DIR):
 # Конфигурация
 LOGGING = {
     'version': 1,  # Версия конфигурации логирования
-    'disable_existing_loggers': False,  # Если False существующие логгеры не будут отключены
+    'disable_existing_loggers': False,
+    # Если False существующие логгеры не будут отключены
     'formatters': {  # Определяет формат вывода логов
         'verbose': {  # Подробный формат
             'format': '{levelname} {asctime} {module} {message}',
@@ -144,11 +169,11 @@ LOGGING = {
     },
     'handlers': {  # Определяет куда отправлять логи
         'file': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,  # Хранить 5 файлов
+            'filename': os.path.join(LOG_DIR, 'django.log'),
+            # 'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            # 'backupCount': 5,  # Хранить 5 файлов
             'formatter': 'verbose',
         },
         'console': {
@@ -163,7 +188,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'invoice_app': {  # Логгер для приложения
+        'invoice': {  # Логгер для приложения
             'handlers': ['file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
