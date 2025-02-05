@@ -11,5 +11,20 @@
         {{ form.as_p }}
         <button type="submit">Загрузить</button>
     </form>
+    <hr>
+    <div id="app">
+        {{ any_text }}
+    </div>
+    
+
+    <script>
+        var socket = new WebSocket('ws://localhost:8000/ws/count/')
+        
+        socket.onmessage = function(event){
+            var data = JSON.parse(event.data)
+            console.log(data)
+            document.querySelector("#app").innerHTML = data.message
+        }
+    </script>
 </body>
 </html>

@@ -243,6 +243,12 @@ def upload_file(request):
                                                            clear_data['invoice_number'])
                 logger.error(f"Ошибка: {e}")
 
+
+            context = {
+                "any_text": "Run"
+            }
+
+
             # Извлекаем данные второго листа
             # итерируем по строкам листа
             data_excel = list()
@@ -291,7 +297,11 @@ def upload_file(request):
             return HttpResponseRedirect('/upload_success/')
     else:
         form = UploadFileForm()
-    return render(request, 'invoice/upload.html', {'form': form})
+        context = {
+            'form': form,
+            'any_text': 'start'
+        }
+    return render(request, 'invoice/upload.html', context=context)
 
 
 
