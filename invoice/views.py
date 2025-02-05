@@ -3,8 +3,9 @@ import re
 
 from openpyxl import load_workbook
 # from django.shortcuts import render
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, StreamingHttpResponse
 from datetime import datetime
+import time
 from django.db import IntegrityError
 from utilities import timer
 
@@ -109,7 +110,7 @@ def parse_sheet(number_sheet, data_excel):
     if number_sheet == 1:
         try:
             # Проверка данных перед обработкой
-            print("data_excel", data_excel)
+            # print("data_excel", data_excel)
             # if len(data_excel) > 0 and len(data_excel[0]) > 14:
             if True:
                 result['conditions_of_medical_care'] = data_excel[0].split('.')[0]
@@ -193,9 +194,16 @@ def upload_file(request):
     :param request:
     :return:
     """
+
+
+
+
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
+
+
+
             file = request.FILES['file']
             logger.info(f"Имя файла {file}")
 
@@ -296,6 +304,7 @@ def upload_file(request):
             # Перенаправление после успешной загрузки
             return HttpResponseRedirect('/upload_success/')
     else:
+
         form = UploadFileForm()
         context = {
             'form': form,
@@ -304,6 +313,53 @@ def upload_file(request):
     return render(request, 'invoice/upload.html', context=context)
 
 
+# Теперь, когда у нас есть задача, которая будет отслеживать прогресс,
+# нужно создать API для получения этого прогресса на фронтенде.
+#
+# Создайте view для получения текущего прогресса.
+
+from django.http import JsonResponse
+from celery.result import AsyncResult
+
+def get_task_progress(request, task_id):
+    task = AsyncResult(task_id)
+    if task.state == 'PROGRESS':
+        return JsonResponse(task.info)
+    else:
+        return JsonResponse({'status': task.state, 'progress': 100})
+
+from .tasks import process_excel_file
+
+def upload_files(request):
+    if request.method == 'POST' and request.FILES['file']:
+        # Сохранение файла на сервере
+        file = request.FILES['file']
+        file_path = save_file(file)  # Реализуйте функцию сохранения
+
+        # Запуск задачи в фоне
+        task = process_excel_file.apply_async(args=[file_path])
+
+        # Отправляем ID задачи на фронт
+        return render(request, 'upload_progress.html', {'task_id': task.id})
+
+
+# def long_running_view(request):
+#     def event_stream():
+#         for i in range(1000):  # имитируем долгий процесс
+#             yield f'data: Progress {i}\n\n'
+#             time.sleep(0.01)
+#
+#     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+#
+
+#
+# def sse_view(request):
+#     response = StreamingHttpResponse(upload_file(request), content_type='text/event-stream')
+#     response['Cache-Control'] = 'no-cache'  # Отключаем кэширование
+#     return response
+#
+# def sse_page(request):
+#     return render(request, 'invoice/sse.html')
 
 #
 # def test_view(request):
