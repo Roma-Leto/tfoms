@@ -19,6 +19,7 @@ from .models import InvoiceDNRDetails, InvoiceAttachment, RegisterTerritorial
 logger = logging.getLogger(__name__)
 
 
+
 def mouth_converter(mouth: str) -> int:
     """
     Переводит название месяца в число
@@ -43,6 +44,11 @@ def mouth_converter(mouth: str) -> int:
     return mouth_dict[mouth.lower()]
 
 def find_medical_docktor_code(lst: list):
+    """
+    Ищет в профиле оказания медицинской помощи - специальности врача цифровые коды
+    :param lst:
+    :return:
+    """
     numbers = []
 
     for item in lst:
@@ -62,110 +68,103 @@ def find_medical_docktor_code(lst: list):
     return numbers
 
 @timer
-def parse_sheet(number_sheet, data_excel):
+def parse_first_sheet(data_excel):
     """
     Функция парсинга excel-файла
-    :param number_sheet: номер страницы документа начиная с 0 (нуля)
     :param data_excel: кортеж данных, извлечённых со страницы документа
     :return: словарь result
     """
-    invoice_number = code_fund = mouth_of_invoice_receipt = \
-        year_of_invoice_receipt = date_of_reporting_period = total_amount = None
     result = dict()
 
-    if number_sheet == 0:
-        try:
-            # Проверка данных перед обработкой
-            if len(data_excel) > 0 and len(data_excel[0]) > 3:
-                result['invoice_number'] = data_excel[0][3].split(' ')[2]
-                logger.info(f"№ счёта {result['invoice_number']}")
+    try:
+        # Проверка данных перед обработкой
+        if len(data_excel) > 0 and len(data_excel[0]) > 3:
+            result['invoice_number'] = data_excel[0][3].split(' ')[2]
 
-            if len(data_excel) > 4 and len(data_excel[4]) > 3:
-                result['mouth_of_invoice_receipt'] = data_excel[4][3].split(' ')[1]
-                logger.info(f"Месяц {result['mouth_of_invoice_receipt']}")
+        if len(data_excel) > 4 and len(data_excel[4]) > 3:
+            result['mouth_of_invoice_receipt'] = data_excel[4][3].split(' ')[1]
+            result['year_of_invoice_receipt'] = data_excel[4][3].split(' ')[2]
 
-                result['year_of_invoice_receipt'] = data_excel[4][3].split(' ')[2]
-                logger.info(f"Год {result['year_of_invoice_receipt']}")
+        postfix = '000'
+        if len(data_excel) > 21 and len(data_excel[21]) > 0:
+            # Выбираем первые 2 символа из строки и присоединяем три нуля в конце
+            result['code_fund'] = int(list(data_excel[21][-1])[0]
+                                      + list(data_excel[21][-1])[1]
+                                      + postfix)
 
-            postfix = '000'
-            if len(data_excel) > 21 and len(data_excel[21]) > 0:
-                # Выбираем первые 2 символа из строки и присоединяем три нуля в конце
-                result['code_fund'] = int(list(data_excel[21][-1])[0]
-                                          + list(data_excel[21][-1])[1]
-                                          + postfix)
-                logger.info(f"Код ТФ {result['code_fund']}")
+        if len(data_excel) > 19 and len(data_excel[19]) > 0:
+            result['date_of_reporting_period'] = data_excel[19][-1]
 
-            if len(data_excel) > 19 and len(data_excel[19]) > 0:
-                result['date_of_reporting_period'] = data_excel[19][-1]
-                logger.info(f"Дата счёта {result['date_of_reporting_period']}")
+        if len(data_excel) > 23 and len(data_excel[23]) > 2:
+            result['total_amount'] = data_excel[23][2]
 
-            if len(data_excel) > 23 and len(data_excel[23]) > 2:
-                result['total_amount'] = data_excel[23][2]
-                logger.info(f"Сумма счёта {result['total_amount']}")
+        logger.info(
+            f"\n№ счёта {result['invoice_number']}\n"
+            f"Месяц {result['mouth_of_invoice_receipt']}\n"
+            f"Год {result['year_of_invoice_receipt']}\n"
+            f"Код ТФ {result['code_fund']}\n"
+            f"Дата счёта {result['date_of_reporting_period']}\n"
+            f"Сумма счёта {result['total_amount']}\n"
+        )
 
-        except IndexError as e:
-            logger.error(f"Ошибка при обработке данных: {e}")
+    except IndexError as e:
+        logger.error(f"Ошибка при обработке данных: {e}")
+    return result
 
-        # Обработка второго листа документа
-    if number_sheet == 1:
-        try:
-            # Проверка данных перед обработкой
-            # print("data_excel", data_excel)
-            # if len(data_excel) > 0 and len(data_excel[0]) > 14:
-            if True:
-                result['conditions_of_medical_care'] = data_excel[0].split('.')[0]
-                # logger.info(f"Кода вида и условий оказания медицинской помощи "
-                #             f"{result['conditions_of_medical_care']}")
+@timer
+def parse_second_sheet(data_excel):
+    """
+    Функция парсинга excel-файла
+    :param data_excel: кортеж данных, извлечённых со страницы документа
+    :return: словарь result
+    """
+    result = dict()
 
-                result['patients_name'] = data_excel[1]
-                # logger.info(f"ФИО {result['patients_name']}")
+    try:
+        # Проверка данных перед обработкой
+        # print("data_excel", data_excel)
+        # if len(data_excel) > 0 and len(data_excel[0]) > 14:
+        if True:
+            result['conditions_of_medical_care'] = data_excel[0].split('.')[0]
+            # logger.info(f"Кода вида и условий оказания медицинской помощи "
+            #             f"{result['conditions_of_medical_care']}")
+            result['patients_name'] = data_excel[1]
+            # logger.info(f"ФИО {result['patients_name']}")
+            result['birthday'] = data_excel[4]
+            # logger.info(f"Дата рождения {result['birthday']}")
+            result['policy_number'] = data_excel[5]
+            # logger.info(f"Номер полиса(ЕНП) {result['policy_number']}")
+            delimiters = r'[()]'  # Символы-разделители
+            result['medical_care_profile_code'] = \
+                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[0]
+            # logger.info(f"Код профиля медицинской помощи "
+            #             f"{result['medical_care_profile_code']}")
+            result['doctors_specialty_code'] = \
+                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[1]
+            # logger.info(f"Код специальности врача "
+            #             f"{result['doctors_specialty_code']}")
+            result['diagnosis'] = data_excel[8]
+            # logger.info(f"Диагноз {result['diagnosis']}")
+            result['start_date_of_treatment'] = data_excel[9]
+            # logger.info(f"Дата начала лечения {result['start_date_of_treatment']}")
+            result['end_date_of_treatment'] = data_excel[10]
+            # logger.info(f"Дата окончания лечения {result['end_date_of_treatment']}")
+            result['treatment_result_code'] = \
+                re.split(delimiters, data_excel[11])[1]
+            # logger.info(f"Дата окончания лечения {result['treatment_result_code']}")
+            result['treatment_result_name'] = \
+                re.split(delimiters, data_excel[11])[2]
+            # logger.info(f"Дата окончания лечения {result['treatment_result_name']}")
+            result['volume_of_medical_care'] = data_excel[12]
+            # logger.info(
+                # f"Объёма медицинской помощи {result['volume_of_medical_care']}")
+            result['tariff'] = data_excel[12]
+            # logger.info(f"Тариф {result['tariff']}")
+            result['expenses'] = data_excel[14]
+            # logger.info(f"Расходы {result['expenses']}")
 
-                result['birthday'] = data_excel[4]
-                # logger.info(f"Дата рождения {result['birthday']}")
-
-                result['policy_number'] = data_excel[5]
-                # logger.info(f"Номер полиса(ЕНП) {result['policy_number']}")
-
-                delimiters = r'[()]'  # Символы-разделители
-                result['medical_care_profile_code'] = \
-                    find_medical_docktor_code(re.split(delimiters, data_excel[7]))[0]
-                # logger.info(f"Код профиля медицинской помощи "
-                #             f"{result['medical_care_profile_code']}")
-
-                result['doctors_specialty_code'] = \
-                    find_medical_docktor_code(re.split(delimiters, data_excel[7]))[1]
-                # logger.info(f"Код специальности врача "
-                #             f"{result['doctors_specialty_code']}")
-
-                result['diagnosis'] = data_excel[8]
-                # logger.info(f"Диагноз {result['diagnosis']}")
-
-                result['start_date_of_treatment'] = data_excel[9]
-                # logger.info(f"Дата начала лечения {result['start_date_of_treatment']}")
-
-                result['end_date_of_treatment'] = data_excel[10]
-                # logger.info(f"Дата окончания лечения {result['end_date_of_treatment']}")
-
-                result['treatment_result_code'] = \
-                    re.split(delimiters, data_excel[11])[1]
-                # logger.info(f"Дата окончания лечения {result['treatment_result_code']}")
-
-                result['treatment_result_name'] = \
-                    re.split(delimiters, data_excel[11])[2]
-                # logger.info(f"Дата окончания лечения {result['treatment_result_name']}")
-
-                result['volume_of_medical_care'] = data_excel[12]
-                # logger.info(
-                    # f"Объёма медицинской помощи {result['volume_of_medical_care']}")
-
-                result['tariff'] = data_excel[12]
-                # logger.info(f"Тариф {result['tariff']}")
-
-                result['expenses'] = data_excel[14]
-                # logger.info(f"Расходы {result['expenses']}")
-
-        except IndexError as e:
-            logger.error(f"Ошибка при обработке данных: {e}")
+    except IndexError as e:
+        logger.error(f"Ошибка при обработке данных: {e}")
 
     logger.info(f"Result: {result}")
 
@@ -194,16 +193,9 @@ def upload_file(request):
     :param request:
     :return:
     """
-
-
-
-
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-
-
-
             file = request.FILES['file']
             logger.info(f"Имя файла {file}")
 
@@ -227,7 +219,7 @@ def upload_file(request):
                 # logger.info(f"Данные {row_number}: {row}")
 
             # Извлекаем данные из ячеек документа и формируем словарь
-            clear_data = parse_sheet(0, data_excel)
+            clear_data = parse_first_sheet(data_excel)
             code_from_register = RegisterTerritorial.objects.get(
                 code=clear_data['code_fund'])
 
@@ -252,31 +244,20 @@ def upload_file(request):
                 logger.error(f"Ошибка: {e}")
 
 
-            context = {
-                "any_text": "Run"
-            }
-
-
             # Извлекаем данные второго листа
             # итерируем по строкам листа
             data_excel = list()
-            row_number = 0
+            # row_number = 0 ----------------------------------
             # Пропустим первые три строки
             start_row_index = 6  # Начинаем с 4-й строки (индексация с нуля)
-            dataset = list()  # Список списков всех пациентов
-            for row in sheet_list[1].iter_rows(min_row=start_row_index,
-                                               values_only=True):
-
+            # dataset = list()  # Список списков всех пациентов -------------------
+            for row in sheet_list[1].iter_rows(min_row=start_row_index, values_only=True):
                 if not None in row and not 'Х' in row:
                     data_excel.append(row)
-                # if row[5] is not None and len(row[5]) > 15:
-                #     row_number += 1
-                    # logger.info(f"Данные {row_number}: {row}")
-            # print(" data_excel.append ", data_excel)
             # Извлечение данных по каждому пациенту в БД
             for pers in data_excel:
                 # Извлекаем данные из ячеек документа и формируем словарь
-                clear_data = parse_sheet(1, pers)
+                clear_data = parse_second_sheet(pers)
                 # print("Словари: ", clear_data)
                 # Запись в БД
                 InvoiceAttachment.objects.create(
@@ -296,82 +277,12 @@ def upload_file(request):
                     tariff=clear_data['tariff'],
                     expenses=clear_data['expenses']
                 )
-
-
-            # Создание записей в базе данных
-
-
             # Перенаправление после успешной загрузки
             return HttpResponseRedirect('/upload_success/')
     else:
-
         form = UploadFileForm()
-        context = {
-            'form': form,
-            'any_text': 'start'
-        }
-    return render(request, 'invoice/upload.html', context=context)
 
-
-# Теперь, когда у нас есть задача, которая будет отслеживать прогресс,
-# нужно создать API для получения этого прогресса на фронтенде.
-#
-# Создайте view для получения текущего прогресса.
-
-from django.http import JsonResponse
-from celery.result import AsyncResult
-
-def get_task_progress(request, task_id):
-    task = AsyncResult(task_id)
-    if task.state == 'PROGRESS':
-        return JsonResponse(task.info)
-    else:
-        return JsonResponse({'status': task.state, 'progress': 100})
-
-from .tasks import process_excel_file
-
-def upload_files(request):
-    if request.method == 'POST' and request.FILES['file']:
-        # Сохранение файла на сервере
-        file = request.FILES['file']
-        file_path = save_file(file)  # Реализуйте функцию сохранения
-
-        # Запуск задачи в фоне
-        task = process_excel_file.apply_async(args=[file_path])
-
-        # Отправляем ID задачи на фронт
-        return render(request, 'upload_progress.html', {'task_id': task.id})
-
-
-# def long_running_view(request):
-#     def event_stream():
-#         for i in range(1000):  # имитируем долгий процесс
-#             yield f'data: Progress {i}\n\n'
-#             time.sleep(0.01)
-#
-#     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
-#
-
-#
-# def sse_view(request):
-#     response = StreamingHttpResponse(upload_file(request), content_type='text/event-stream')
-#     response['Cache-Control'] = 'no-cache'  # Отключаем кэширование
-#     return response
-#
-# def sse_page(request):
-#     return render(request, 'invoice/sse.html')
-
-#
-# def test_view(request):
-#     if request.method == 'POST':
-#         form = TestUploadFileForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             file = request.FILES['file']
-#             task_id = process_file.delay(file.read())
-#             return redirect(f'/progress/{task_id}')
-#     else:
-#         form = UploadFileForm()
-#     return render(request, 'invoice/upload.html', {'form': form})
+    return render(request, 'invoice/upload.html', {'form': form})
 
 # TODO: валидация данных
 # TODO: обработка ошибок

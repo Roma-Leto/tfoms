@@ -185,3 +185,8 @@ class RegisterTerritorial(models.Model):
         max_length=127,
         verbose_name="Название субъекта"
     )
+
+class FileUpload(models.Model):
+    file = models.FileField(upload_to='uploads/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    result_file = models.FileField(upload_to='results/', null=True, blank=True)

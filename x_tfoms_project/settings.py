@@ -22,17 +22,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels',
     'users',
     'invoice',
-
 ]
 
 MIDDLEWARE = [
@@ -65,14 +62,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
-ASGI_APPLICATION = 'x_tfoms_project.asgi.application'
 
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
+
 
 
 # Database
@@ -124,37 +116,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DATE_INPUT_FORMATS = ['%d.%m.%Y']  # Формат даты, например, 25-12-2023
 DATE_FORMAT = ['%d.%m.%Y']
 
-# region Настройка Redis
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": "redis://127.0.0.1:6379/1",
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         }
-#     }
-# }
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("127.0.0.1", 6379)],
-#         }
-#     }
-# }
-
-# endregion Настройка Redis
-
-# region Настройка Celery
-# CELERY_BROKER_URL = 'redis://localhost:6379'
-# CELERY_RESULT_BACKEND = 'redis://localhost:6379'
-# CELERY_ACCEPT_CONTENT = ['application/json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = 'Europe/Moscow'  # Ваша временная зона
-# endregion Настройка Celery
 
 # region Настройка логирования проекта
 
