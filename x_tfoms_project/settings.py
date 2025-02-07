@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'invoice',
+    'django_bootstrap5',
 ]
 
 MIDDLEWARE = [
@@ -74,7 +75,19 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+    # 'default': {
+    #     'ENGINE': 'mssql',
+    #     'NAME': 'mtrnt',  # Имя вашей базы данных
+    #     'USER': 'leto',       # Имя пользователя
+    #     'PASSWORD': '1MSLeto',   # Пароль
+    #     'HOST': '192.168.0.12', # Адрес сервера
+    #     'PORT': '1433',                # Порт (по умолчанию 1433 для MSSQL)
+    #     'OPTIONS': {
+    #         'driver': 'ODBC Driver 17 for SQL Server',  # Укажите версию драйвера
+    #     },
+    # }
 }
+
 
 # Password validation
 
@@ -108,6 +121,9 @@ AUTH_USER_MODEL = 'users.User'
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR/'static',
+]
 
 # Default primary key field type
 
