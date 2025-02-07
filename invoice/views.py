@@ -262,35 +262,40 @@ def upload_file(request):
 
 
 def upload_second_sheet(request):
+    """
+    Парсинг и сохранения данных второго листа отчёта
+    :param request:
+    :return:
+    """
+    # region Поиск и загрузка файла счёта в память
     item = InvoiceDNRDetails.objects.latest('id')
     filename = item.file_name.replace(' — ', '__')  # замена длинного тире на обычный дефис
     file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
+    # endregion Поиск и загрузка файла счёта в память
 
+    # region Проверка открытия файла отчёта
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Файл не найден: {file_path}")
-    sheet_list = list()
     try:
         workbook = load_workbook(file_path, data_only=True)
-        # Дальнейшая работа с рабочей тетрадью
-        print("Рабочая тетрадь загружена")
     except Exception as e:
-        print(f"Произошла ошибка при открытии файла: {e}")
+        logger.info(f"Произошла ошибка при открытии файла: {e}")
+    # endregion Проверка открытия файла отчёта
 
-    # Итерируемся по всем листам
+    # region Формируем список листов
+    # Загрузка Excel-файла с помощью openpyxl
+    workbook = load_workbook(file_path, data_only=True)
+    sheet_list = list()
     for sheet_name in workbook.sheetnames:
         sheet = workbook[sheet_name]  # Получаем лист по имени
         sheet_list.append(sheet)
         logger.info(f'Название листа: {sheet_name}')  # Выводим имя листа
+    # endregion Формируем список листов
 
-      # Список листов
-#region save
-    # Извлекаем данные второго листа
-    # итерируем по строкам листа
-    data_excel = list()
-    # row_number = 0 ----------------------------------
+    #region Сохраняем каждую строку данных в базу данных
+    data_excel = list()  # Создаём список для строк документа
     # Пропустим первые три строки
     start_row_index = 6  # Начинаем с 4-й строки (индексация с нуля)
-    # dataset = list()  # Список списков всех пациентов -------------------
     for row in sheet_list[1].iter_rows(min_row=start_row_index,
                                        values_only=True):
         if not None in row and not 'Х' in row:
@@ -320,9 +325,10 @@ def upload_second_sheet(request):
             tariff=clear_data['tariff'],
             expenses=clear_data['expenses']
         )
+    # endregion Сохраняем каждую строку данных в базу данных
 
     return HttpResponseRedirect('/')
-# endregion save
+
 
 
 # def check_data(request, excel_id):
@@ -440,7 +446,7 @@ def check_data_view(request, pk):
     context = {
         'table_data': table_data,
     }
-    return render(request, 'invoice/check_data.html', context)
+    return render(request, 'invoice/../templates/check_data.html', context)
 
 
 from django.views.decorators.csrf import csrf_exempt

@@ -1,0 +1,17 @@
+{% extends 'invoice/upload.html' %}
+
+{% block content %}
+	<h1>Данные для проверки</h1>
+    <table border="1">
+        {% for row in table_data %}
+            <tr>
+                {% for cell in row %}
+                    {{ cell|safe }}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+    
+    <br />
+    <button id="save-changes">Сохранить изменения</button>
+{% endblock %}

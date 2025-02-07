@@ -45,7 +45,7 @@ class InvoiceDNRDetails(models.Model):
         verbose_name="Код территориального фонда"  # Название поля
     )
     # Поле номера счёта
-    invoice_number = models.FloatField(
+    invoice_number = models.IntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Номер счёта",  # Название поля
@@ -185,6 +185,9 @@ class RegisterTerritorial(models.Model):
         max_length=127,
         verbose_name="Название субъекта"
     )
+
+    def __str__(self):
+        return f"{self.code}: {self.name}"
 
 class FileUpload(models.Model):
     file = models.FileField(upload_to='uploads/')

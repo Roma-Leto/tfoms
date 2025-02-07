@@ -1,21 +1,24 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Book</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends 'invoice/upload.html' %}
 
-</head>
-<body>
-    <h1>Результат загрузки</h1>
-    Загрузка прошла успешно!
 
+{% block content %}
+	
+    
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="bg-primary bg-success text-white p-3 rounded">
+            <h1>Результат загрузки</h1>
+            <p>Загрузка прошла <b>успешно!</b></p>
+            <h4>Проверьте данные первой страницы</h4>
+        </div>
+    </div>
+    
     <script>
         pk = {{ pk }}
         setTimeout(function () {
             window.location.href = '{% url 'edit-book' pk=pk %}'; // Укажите нужный URL
-        }, 1500); // Время задержки в миллисекундах (5000 мс = 5 сек)
+        }, 2500); // Время задержки в миллисекундах (5000 мс = 5 сек)
     </script>
-</body>
-</html>
+
+{% endblock %}
+
+    

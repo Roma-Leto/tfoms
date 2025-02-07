@@ -1,13 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    <form method="post">{% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Update">
-</form>
-</body>
-</html>
+{% extends 'invoice/upload.html' %}
+
+
+{% block content %}
+
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="bg-secondary bg-gradient text-white p-3 rounded-3 w-25 border border-dark">
+            {% load django_bootstrap5 %}
+            <form id="upload-form" method="POST" enctype="multipart/form-data" class="form-floating">
+                {% csrf_token %}
+                {% bootstrap_field form.invoice_number label_class=""%}
+                {% bootstrap_field form.code_fund %}
+                {% bootstrap_field form.mouth_of_invoice_receipt %}
+                {% bootstrap_field form.year_of_invoice_receipt %}
+                {% bootstrap_field form.date_of_reporting_period %}
+                {% bootstrap_field form.total_amount %}
+{#                {% bootstrap_form form %}#}
+
+                {% bootstrap_button button_type="submit" content="Сохранить" class="btn btn-success" %}
+            </form>
+        </div>
+    </div>
+
+
+
+{% endblock %}
