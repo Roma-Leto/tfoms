@@ -254,7 +254,7 @@ def upload_file(request):
                           {
                               'form': form,
                               'pk': item
-                           })
+                          })
     else:
         form = UploadFileForm()
 
@@ -269,7 +269,8 @@ def upload_second_sheet(request):
     """
     # region Поиск и загрузка файла счёта в память
     item = InvoiceDNRDetails.objects.latest('id')
-    filename = item.file_name.replace(' — ', '__')  # замена длинного тире на обычный дефис
+    filename = item.file_name.replace(' — ',
+                                      '__')  # замена длинного тире на обычный дефис
     file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
     # endregion Поиск и загрузка файла счёта в память
 
@@ -292,7 +293,7 @@ def upload_second_sheet(request):
         logger.info(f'Название листа: {sheet_name}')  # Выводим имя листа
     # endregion Формируем список листов
 
-    #region Сохраняем каждую строку данных в базу данных
+    # region Сохраняем каждую строку данных в базу данных
     data_excel = list()  # Создаём список для строк документа
     # Пропустим первые три строки
     start_row_index = 6  # Начинаем с 4-й строки (индексация с нуля)
@@ -334,94 +335,17 @@ def upload_second_sheet(request):
     return render(request, 'invoice/data_processing_result.html', context)
 
 
-
-# def check_data(request, excel_id):
-#     """
-#     Контроллер проверки данных с первой страницы документа
-#     :param request:
-#     :param excel_id:
-#     :return:
-#     """
-#     data = InvoiceDNRDetails.objects.get(id=excel_id)
-#     print(excel_id)
-#     if request.method == 'POST':
-#         form = DNRDetailsForm(request.POST, instance=data)
-#         print(form)
-#         if form.is_valid():
-#             form.save()  # Сохраняем изменения в базе данных
-#             return HttpResponseRedirect(
-#                 '/books/')  # Переходим на страницу со списком книг
-#     else:
-#         form = DNRDetailsForm(instance=data)
-#
-#     context = {
-#         'form': form,
-#         'data': data
-#     }
-#
-#     return render(request, 'invoice/check_data.html', context)
-#
-#
-# def upload_view(request):
-#     if request.method == 'POST':
-#         form = UploadFileForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             # Сохраняем файл
-#             uploaded_file = FileUpload(file=request.FILES['file'])
-#             uploaded_file.save()
-#             return redirect('upload_success', pk=uploaded_file.pk)
-#     else:
-#         form = UploadFileForm()
-#
-#     context = {
-#         'form': form,
-#     }
-#     return render(request, 'invoice/upload.html', context)
-
-
 class DataUpdate(UpdateView):
     model = InvoiceDNRDetails
     fields = ['mouth_of_invoice_receipt',
-                  'year_of_invoice_receipt',
-                  'date_of_reporting_period',
-                  'code_fund',
-                  'invoice_number',
-                  'total_amount'
-                  ]
+              'year_of_invoice_receipt',
+              'date_of_reporting_period',
+              'code_fund',
+              'invoice_number',
+              'total_amount'
+              ]
     template_name_suffix = "_update"
     success_url = 'save_second'
-
-#
-# class DataFormView(FormView):
-#     template_name = "invoice/edit_data_first_sheet.html"
-#     form_class = DNRDetailsForm
-#     success_url = "/"
-#
-#     def form_valid(self, form):
-#         # This method is called when valid form data has been POSTed.
-#         # It should return an HttpResponse.
-#         return super().form_valid(form)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -488,8 +412,6 @@ def save_changes_view(request, pk):
 
         return JsonResponse({'message': 'Changes saved successfully!'})
     return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
 
 
 from threading import Thread
