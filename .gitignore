@@ -2,3 +2,7 @@
 note.txt
 .gitignore
 db.sqlite3
+/61_tc_24126101.xlsx
+/61_tc_24126101 — копия.xlsx
+/invoice/migrations/
+/users/migrations/
