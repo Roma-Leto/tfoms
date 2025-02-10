@@ -7,3 +7,4 @@ db.sqlite3
 /invoice/migrations/
 /users/migrations/
 *__pycache__*
+/logs/django.log
