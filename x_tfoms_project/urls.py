@@ -15,4 +15,5 @@ urlpatterns = [
     path('up/<int:pk>', DataUpdate.as_view(), name='edit-book'),
     path('upload_success/', TemplateView.as_view(template_name='invoice/upload_success.html'), name='upload_success'),
     path('', upload_file, name='upload_file'),
+    path('data_processing_result', upload_file, name='upload_file'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -5,7 +5,7 @@ from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import models
 
-
+# Данные счёта
 class InvoiceDNRDetails(models.Model):
     """
     Модель базы данных для первой страница счёта в файле Excel
@@ -64,8 +64,7 @@ class InvoiceDNRDetails(models.Model):
     def __str__(self):
         return self.invoice_number
 
-
-
+# Записи пациентов
 class InvoiceAttachment(models.Model):
     """
     Модель базы данных для приложения к счёту
@@ -170,7 +169,7 @@ class InvoiceAttachment(models.Model):
         verbose_name="Тариф"  # Название поля
     )
 
-
+# Список субъектов
 class RegisterTerritorial(models.Model):
     """
     Модель таблицы для субъектов
@@ -189,6 +188,7 @@ class RegisterTerritorial(models.Model):
     def __str__(self):
         return f"{self.code}: {self.name}"
 
+# Список файлов счетов
 class FileUpload(models.Model):
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)

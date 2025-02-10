@@ -327,7 +327,11 @@ def upload_second_sheet(request):
         )
     # endregion Сохраняем каждую строку данных в базу данных
 
-    return HttpResponseRedirect('/')
+    context = {
+        'data': "result data"
+    }
+
+    return render(request, 'invoice/data_processing_result.html', context)
 
 
 
