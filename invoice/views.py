@@ -348,4 +348,44 @@ class DataUpdate(UpdateView):
     success_url = 'save_second'
 
 
+from django.shortcuts import render, redirect
+from django.db import connection
+import pyodbc
+
+
+def run_procedure(request):
+    if request.method == 'POST':
+        # Подключение к базе данных
+        conn = pyodbc.connect(
+            'DRIVER={ODBC Driver 17 for SQL Server};SERVER==192.168.0.12;database=mtrnt;uid=leto;pwd=1MSLeto')
+        cursor = conn.cursor()
+
+        # Вызов процедуры
+        procedure_name = 'dbo.check_invoice'
+        params = ['param1', 'param2']  # Список параметров, если они требуются
+
+        # Формирование команды SQL для вызова процедуры
+        sql_query = f"{procedure_name}(?, ?)"  # Количество знаков вопроса должно соответствовать количеству параметров
+        cursor.execute(sql_query, params)
+
+        # Получение результата
+        results = cursor.fetchall()
+
+        # Закрытие соединения
+        cursor.close()
+        conn.close()
+
+        # Получение результатов выполнения процедуры
+        results = cursor.fetchall()
+        print(results)
+
+        return redirect('result_page')  # Переход на страницу с результатами
+
+    return render(request, 'invoice/upload.html')
+
+def result_page(request):
+    context = {
+        'results': request.GET['results']  # Результаты должны быть переданы сюда из предыдущего представления
+    }
+    return render(request, 'results.html', context)
 

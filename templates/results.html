@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результаты выполнения процедуры</title>
+</head>
+<body>
+    <h1>Результаты:</h1>
+    <ul>
+        {% for row in results %}
+            <li>{{ row }}</li>  <!-- Здесь может потребоваться дополнительная обработка строки -->
+        {% endfor %}
+    </ul>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+/*
+	invoice_invoicednrdetails - таблица счетов МТР, в которой сохраняются данные о загруженных счетах
+	invoice_invoiceattachment - таблица с данными счета (информацией о лечении, выставленном к оплате), связь по ключу [invoice_invoicednrdetails].[id] = [invoice_invoiceattachment].[invoice_id]
+*/
+
+CREATE PROCEDURE dbo.check_invoice (
+    @invoice_id INT = NULL -- [dbo].[invoice_invoicednrdetails].[id]
+)
+
+
+
+AS
+BEGIN
+	SET NOCOUNT ON;
+
+    -- Проверка на существование параметра и наличие записи
+    IF @invoice_id IS NULL RETURN 1;
+
+    -- Проверка, существует ли запись с заданным id
+    IF NOT EXISTS (
+        SELECT TOP 1 NULL
+        FROM dbo.invoice_invoicednrdetails
+        WHERE id = @invoice_id
+    ) RETURN 1;
+
+    -- Если запись найдена, продолжаем выполнение процедуру
+
+    -- Объявление переменных для идентификации пациента
+   declare cr$ cursor local forward_only for
+	select D.policy_number -- ЕНП ЗЛ
+		, D.patients_name  -- ФИО ЗЛ
+		, D.birthday	 -- ДатаРождения ЗЛ
+		, isnull(D.end_date_of_treatment, D.start_date_of_treatment) as dt -- даты лечения, в норме заполнены обе, проверяем в норме на дату выписки (дата2)
+		, cast('<IDS><ID>' + STRING_AGG(convert(varchar(10), D.id), '</ID><ID>') + '</ID></IDS>' as xml) as X
+		  -- формируем XML со списком ID для того чтобы их потом обновить
+	from dbo.invoice_invoiceattachment D
+	WHERE D.id = @invoice_id AND D.id_pac IS NULL -- Идентифицируем только записи без
+	group by D.patients_name, D.birthday, D.policy_number, isnull(D.end_date_of_treatment, D.start_date_of_treatment)
+	;
+
+	DECLARE @req_id int	-- идентификатор запроса к ФЕРЗЛ ( FK, [web].[dbo].[psp_list].[id] )
+		--переменные для курсора
+		,@policy_number  nvarchar(16)
+		,@patients_name  nvarchar(255)
+		,@birthday   date
+		,@dt date
+		,@X xml
+	;
+	--результаты идентификации
+	DECLARE @rc int				-- код возврата процеедуры идентификации
+		, @policy_number_id nvarchar(16)  -- ЕНП по результату идентфиикации
+		, @id_zl  int			-- идентфиикатор ЗЛ ( FK, [srz_x].[dbo].[people].[id] )
+		, @smo_id  nvarchar(5)  -- страховая комания по результату идентфиикации { '61001', '61013', '61017', '61022', '61024' } - коды областных СМО
+		, @pol int				-- { 1: мужской, 2: женский } пол ЗЛ по результату идентфиикации
+	;
+
+	OPEN cr$
+	WHILE 1=1 BEGIN
+		FETCH NEXT FROM cr$ INTO @policy_number, @patients_name, @birthday, @dt, @X
+		if @@FETCH_STATUS != 0 BREAK;
+
+		-- идентифицируем данные о ЗЛ в региональном сегмента
+		EXEC  @rc = rsbdz.dbo.id_mtr @policy_number, @patients_name, @birthday, @dt, @policy_number_id output, @id_zl output, @smo_id output;
+		-- @rc: 1 => идентификация не выполнена, 0 => процедура завершена успешно (не гарантирует идентификацию)
+		-- @smo_id возвращается только в случае если страхование действует в региональном сегменте
+
+		-- вычислим пол по ЕНП
+		set @pol = (
+			select top 1 w
+			from test.dbo.describe_policy_number(isnull(@policy_number_id,test.dbo.check_policy_number(@policy_number)))
+		);
+
+		set @req_id = null
+		-- если идентификация провалена или страхование прекращено, отправляек м запрос в ФЕРЗЛ
+		if @rc != 0 or @smo_id is null begin
+
+			-- запрос к ФЕРЗЛ по ЕНП, если запрос уже есть, используем его
+			set @req_id =
+			(
+				select top 1 WEB.id --
+				from dbo.invoice_invoiceattachment PAC
+					inner join web.dbo.psp_list WEB on PAC.req_id = WEB.id
+				where PAC.w_id is not null -- @pol не заполняется если не было возможности расшифровать ЕНП
+					and WEB.policy_number = @policy_number
+					and cast(WEB.date_resp as date) = cast(getdate() as date)
+			);
+
+			if @req_id is null and test.dbo.check_policy_number(@policy_number) is not null begin
+				insert into web.dbo.psp_list(policy_number,dtfrom,dtto,code_org)
+				values (@policy_number,'01.01.1900','31.12.2099','nter_mtr_id')
+				;
+				set @req_id = SCOPE_IDENTITY();
+			end
+
+		end
+
+		update dbo.invoice_invoiceattachment
+		set   pid = @id_zl				-- pid === id_zl === идентфиикатор ЗЛ ( FK, [srz_x].[dbo].[people].[id] )
+			, [w_id] = @pol				-- пол по результату идентфиикации
+			, [smo_id] = @smo_id		-- страховая комания по результату идентфиикации
+			, [policy_number_id] = @policy_number_id		-- ЕНП по результату идентфиикации
+			, [req_id] = @req_id		-- записываем код запроса к ФЕРЗЛ для асинхронной обработки ответа в дальнейшем
+			, [id_pac] = 1				-- в текущей версии информационной схемы поле отвечает за факт прохождения идентфиикации, заполняется { NULL , 1 }
+		where ext_id = @uid
+			and id_pac is null
+			and id in (
+				select X.value('.[1]','int') id
+				from @X.nodes('//ID') T(X)
+			) -- достаем ID обратно из XML
+		;
+
+	END
+	CLOSE cr$
+	DEALLOCATE cr$
+
+	--exec [dbo].[frzl_update];
+END;
+
+
+
+CREATE PROCEDURE [dbo].[check_bill] (
+		  @fid int = null				-- [dbo].[dnck_mtr_bill].[id]
+		, @uid uniqueidentifier = null  -- [dbo].[dnck_mtr_bill].[ext_id]
+	) -- можно подать любой из ключей либо оба (но они должны соответствовать)
+AS
+/*
+	dnck_mtr_bill - таблица счетов МТР, в которой сохраняются данные о загруженных счетах
+	dnck_mtr_data - таблица с данными счета (информацией о лечении, выставленном к оплате), связь по ключу [dnck_mtr_bill].[ext_id] = [dnck_mtr_data].[ext_id]
+*/
+BEGIN
+	set nocount on;
+
+	if @fid is null and @uid is null return 1;
+
+	if not exists(
+		select top 1 null
+		from [dbo].[dnck_mtr_bill] 
+		where id = isnull(@fid, id) and ext_id = isnull(@uid, ext_id)
+	) return 1;
+
+	if @uid is null set @uid = (select top 1 ext_id from [dbo].[dnck_mtr_bill] where id = @fid);
+
+	declare cr$ cursor local forward_only for
+	select D.enp -- ЕНП ЗЛ
+		, D.fio  -- ФИО ЗЛ
+		, D.dr	 -- ДатаРождения ЗЛ
+		, isnull(D.date2, D.date1) as dt -- даты лечения, в норме заполнены обе, проверяем в норме на дату выписки (дата2)
+		, cast('<IDS><ID>' + STRING_AGG(convert(varchar(10), D.id), '</ID><ID>') + '</ID></IDS>' as xml) as X
+		  -- формируем XML со списком ID для того чтобы их потом обновить
+	from dbo.dnck_mtr_data D
+	where D.ext_id = @uid and D.id_pac is null
+	group by D.fio, D.dr, D.enp, isnull(D.date2, D.date1)
+	;
+
+	DECLARE @req_id int	-- идентификатор запроса к ФЕРЗЛ ( FK, [web].[dbo].[psp_list}.[id] )
+		--переменные для курсора
+		,@enp  nvarchar(16)	
+		,@fio  nvarchar(255)
+		,@dr   date
+		,@dt date
+		,@X xml
+	;
+	--результаты идентификации
+	DECLARE @rc int				-- код возврата процеедуры идентификации
+		, @enp_id nvarchar(16)  -- ЕНП по результату идентфиикации
+		, @id_zl  int			-- идентфиикатор ЗЛ ( FK, [srz_x].[dbo].[people].[id] )
+		, @smo_id  nvarchar(5)  -- страховая комания по результату идентфиикации { '61001', '61013', '61017', '61022', '61024' } - коды областных СМО
+		, @pol int				-- { 1: мужской, 2: женский } пол ЗЛ по результату идентфиикации
+	;
+
+	OPEN cr$		 
+	WHILE 1=1 BEGIN
+		FETCH NEXT FROM cr$ INTO @enp, @fio, @dr, @dt, @X
+		if @@FETCH_STATUS != 0 BREAK;
+
+		-- идентифицируем данные о ЗЛ в региональном сегмента
+		EXEC  @rc = rsbdz.dbo.id_mtr @enp, @fio, @dr, @dt, @enp_id output, @id_zl output, @smo_id output;
+		-- @rc: 1 => идентификация не выполнена, 0 => процедура завершена успешно (не гарантирует идентификацию)
+		-- @smo_id возвращается только в случае если страхование действует в региональном сегменте
+
+		-- вычислим пол по ЕНП
+		set @pol = (
+			select top 1 w
+			from test.dbo.describe_enp(isnull(@enp_id,test.dbo.check_enp(@enp)))
+		);
+
+		set @req_id = null
+		-- если идентификация провалена или страхование прекращено, отправляек м запрос в ФЕРЗЛ
+		if @rc != 0 or @smo_id is null begin
+
+			-- запрос к ФЕРЗЛ по ЕНП, если запрос уже есть, используем его
+			set @req_id =
+			(
+				select top 1 WEB.id --
+				from dbo.dnck_mtr_data PAC
+					inner join web.dbo.psp_list WEB on PAC.req_id = WEB.id
+				where PAC.w_id is not null -- @pol не заполняется если не было возможности расшифровать ЕНП
+					and WEB.enp = @enp
+					and cast(WEB.date_resp as date) = cast(getdate() as date)
+			);
+
+			if @req_id is null and test.dbo.check_enp(@enp) is not null begin
+				insert into web.dbo.psp_list(enp,dtfrom,dtto,code_org)
+				values (@enp,'01.01.1900','31.12.2099','nter_mtr_id')
+				;
+				set @req_id = SCOPE_IDENTITY();
+			end
+
+		end
+
+		update dbo.dnck_mtr_data
+		set   pid = @id_zl				-- pid === id_zl === идентфиикатор ЗЛ ( FK, [srz_x].[dbo].[people].[id] )
+			, [w_id] = @pol				-- пол по результату идентфиикации 
+			, [smo_id] = @smo_id		-- страховая комания по результату идентфиикации
+			, [enp_id] = @enp_id		-- ЕНП по результату идентфиикации
+			, [req_id] = @req_id		-- записываем код запроса к ФЕРЗЛ для асинхронной обработки ответа в дальнейшем
+			, [id_pac] = 1				-- в текущей версии информационной схемы поле отвечает за факт прохождения идентфиикации, заполняется { NULL , 1 }
+		where ext_id = @uid
+			and id_pac is null
+			and id in (
+				select X.value('.[1]','int') id
+				from @X.nodes('//ID') T(X)
+			) -- достаем ID обратно из XML
+		;
+			
+	END
+	CLOSE cr$ 
+	DEALLOCATE cr$
+
+	--exec [dbo].[frzl_update];
+END
