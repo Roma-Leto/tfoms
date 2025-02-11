@@ -18,7 +18,7 @@ SECRET_KEY = 'django-insecure-7058n%5*kp-^w&_=q0ss^a6=)*euok^&v7s2i2hs8ta_#3o_xn
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost'
+    'localhost', '*'
 ]
 
 # Application definition
@@ -73,21 +73,21 @@ WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
 # Database
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
     # 'default': {
-    #     'ENGINE': 'mssql',
-    #     'NAME': 'mtrnt',  # Имя вашей базы данных
-    #     'USER': 'leto',       # Имя пользователя
-    #     'PASSWORD': '1MSLeto',   # Пароль
-    #     'HOST': '192.168.0.12', # Адрес сервера
-    #     'PORT': '1433',                # Порт (по умолчанию 1433 для MSSQL)
-    #     'OPTIONS': {
-    #         'driver': 'ODBC Driver 17 for SQL Server',  # Укажите версию драйвера
-    #     },
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
     # }
+    'default': {
+        'ENGINE': 'mssql',
+        'NAME': 'mtrnt',  # Имя вашей базы данных
+        'USER': 'leto',       # Имя пользователя
+        'PASSWORD': '1MSLeto',   # Пароль
+        'HOST': '192.168.0.12', # Адрес сервера
+        'PORT': '1433',                # Порт (по умолчанию 1433 для MSSQL)
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',  # Укажите версию драйвера
+        },
+    }
 }
 
 

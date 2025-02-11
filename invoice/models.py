@@ -95,7 +95,7 @@ class InvoiceAttachment(models.Model):
         verbose_name="Дата отчётного периода"  # Название поля
     )
     # Поле номера полиса медицинского страхования (ЕНП)
-    policy_number = models.IntegerField(
+    policy_number = models.PositiveBigIntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         help_text="Номер полиса обязательного медицинского страхования "
@@ -142,7 +142,7 @@ class InvoiceAttachment(models.Model):
     )
     # Поле наименования результата лечения
     treatment_result_name = models.CharField(
-        max_length=50,  # Максимум 5 символов
+        max_length=127,  # Максимум 127 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Результат лечения"  # Название поля
