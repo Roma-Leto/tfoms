@@ -9,6 +9,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseRedirect
 from datetime import datetime
 from django.db import IntegrityError, connection
+from pandas.conftest import names
+
 from utilities import timer
 from x_tfoms_project import settings
 
@@ -51,7 +53,8 @@ def find_medical_docktor_code(lst: list):
     :return:
     """
     numbers = []
-
+    names = []
+    logger.info(f"Данные find_medical_docktor_code - {lst}")
     for item in lst:
         try:
             num = int(item)  # Сначала попробуем преобразовать в целое число
@@ -61,12 +64,14 @@ def find_medical_docktor_code(lst: list):
                 num = float(item)  # Затем попробуем преобразовать в вещественное число
                 numbers.append(num)
             except ValueError:
+                if len(item) > 2:
+                    names.append(item)
                 continue  # Если не получилось ни то, ни другое, пропускаем элемент
 
-        if len(numbers) >= 2:
+        if len(numbers) >= 2 and len(names) >= 2:
             break  # Останавливаемся, как только нашли два числа
-
-    return numbers
+    print("NUMBERS: ", numbers, names)
+    return numbers, names
 
 
 @timer
@@ -139,15 +144,26 @@ def parse_second_sheet(data_excel):
             # logger.info(f"Дата рождения {result['birthday']}")
             result['policy_number'] = data_excel[5]
             # logger.info(f"Номер полиса(ЕНП) {result['policy_number']}")
-            delimiters = r'[()]'  # Символы-разделители
+            delimiters = r'[()-]'  # Символы-разделители
             result['medical_care_profile_code'] = \
-                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[0]
+                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[0][0]
             # logger.info(f"Код профиля медицинской помощи "
             #             f"{result['medical_care_profile_code']}")
             result['doctors_specialty_code'] = \
-                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[1]
+                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[0][1]
             # logger.info(f"Код специальности врача "
             #             f"{result['doctors_specialty_code']}")
+
+            result['medical_care_profile_name'] = \
+                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[1][0]
+            # logger.info(f"Код профиля медицинской помощи "
+            #             f"{result['medical_care_profile_code']}")
+            result['doctors_specialty_name'] = \
+                find_medical_docktor_code(re.split(delimiters, data_excel[7]))[1][1]
+            # logger.info(f"Код специальности врача "
+            #             f"{result['doctors_specialty_code']}")
+
+
             result['diagnosis'] = data_excel[8]
             # logger.info(f"Диагноз {result['diagnosis']}")
             result['start_date_of_treatment'] = data_excel[9]
@@ -310,7 +326,7 @@ def upload_second_sheet(request):
     for pers in data_excel:
         # Извлекаем данные из ячеек документа и формируем словарь
         clear_data = parse_second_sheet(pers)
-        # print("Словари: ", clear_data)
+        print("Словари: ", clear_data)
         # Запись в БД
         try:
             InvoiceAttachment.objects.create(
@@ -321,6 +337,8 @@ def upload_second_sheet(request):
                 enp=int(clear_data['policy_number']),
                 profil_id=clear_data['medical_care_profile_code'],
                 spec_id=clear_data['doctors_specialty_code'],
+                profil_n=clear_data['medical_care_profile_name'],
+                spec_n=clear_data['doctors_specialty_name'],
                 dz=clear_data['diagnosis'],
                 date1=convert_date(
                     clear_data['start_date_of_treatment']),
