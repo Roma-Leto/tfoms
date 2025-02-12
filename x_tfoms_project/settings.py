@@ -68,7 +68,7 @@ WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
 
 
 
-TEST_DB = True
+TEST_DB = False
 
 # Database
 if TEST_DB:

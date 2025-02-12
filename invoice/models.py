@@ -5,6 +5,7 @@ from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import UniqueConstraint
+import uuid
 
 
 # Данные счёта
@@ -59,6 +60,12 @@ class InvoiceDNRDetails(models.Model):
         blank=False,  # Поле не может быть пустым
         verbose_name="Сумма счёта"  # Название поля
     )
+    ext_id = models.UUIDField(
+        primary_key=False,
+        default=uuid.uuid4,
+        editable=False,
+        unique=True
+    )
 
     class Meta:
         pass
@@ -75,6 +82,7 @@ class InvoiceAttachment(models.Model):
     ext = models.ForeignKey(
         InvoiceDNRDetails,
         related_name='invoice_details',
+        # to_field='ext_id',
         on_delete=models.CASCADE  # Удаление деталей счёта удалит приложение
     )
     usl_ok = models.IntegerField(
@@ -101,7 +109,7 @@ class InvoiceAttachment(models.Model):
     )
     mocod = models.IntegerField(
         null=True,
-        verbose_name="Номер в реестре медицинских организаций"  # Название поля
+        verbose_name="№ п/п"  # Название поля
     )
     tip = models.CharField(
         max_length=50,

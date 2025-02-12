@@ -1,6 +1,7 @@
 # region Imports
 import logging
 import re, os
+import uuid
 
 from django.views.generic import UpdateView, FormView
 from openpyxl import load_workbook
@@ -69,7 +70,7 @@ def find_medical_docktor_code(lst: list):
 
 
 @timer
-def parse_first_sheet(data_excel):
+def parse_first_sheet(data_excel, file):
     """
     Функция парсинга excel-файла
     :param data_excel: кортеж данных, извлечённых со страницы документа
@@ -98,6 +99,8 @@ def parse_first_sheet(data_excel):
 
         if len(data_excel) > 23 and len(data_excel[23]) > 2:
             result['total_amount'] = data_excel[23][2]
+
+        result['ext_id'] = str(uuid.uuid4())
 
         logger.info(
             f"\n№ счёта {result['invoice_number']}\n"
@@ -165,6 +168,7 @@ def parse_second_sheet(data_excel):
             result['expenses'] = data_excel[14]
             # logger.info(f"Расходы {result['expenses']}")
 
+
     except IndexError as e:
         logger.error(f"Ошибка при обработке данных: {e}")
 
@@ -223,7 +227,7 @@ def upload_file(request):
                 data_excel.append(row)
                 row_number += 1
             # Извлекаем данные из ячеек документа и формируем словарь
-            clear_data = parse_first_sheet(data_excel)
+            clear_data = parse_first_sheet(data_excel, file)
             code_from_register = RegisterTerritorial.objects.get(
                 code=clear_data['code_fund'])
             # Создание записи первой страницы в БД
@@ -239,7 +243,8 @@ def upload_file(request):
                         clear_data['date_of_reporting_period']),
                     code_fund=code_from_register,
                     invoice_number=clear_data['invoice_number'],
-                    total_amount=clear_data['total_amount']
+                    total_amount=clear_data['total_amount'],
+                    # ext_id=clear_data['ext_id']
                 )
             except IntegrityError as e:
                 inv_object = InvoiceDNRDetails.objects.get(invoice_number=
@@ -247,13 +252,13 @@ def upload_file(request):
                 logger.error(f"Ошибка: {e}")
 
             form = InvoiceDNRDetails(request.POST)
-            item = InvoiceDNRDetails.objects.latest('id').id
-            print(item)
+            item = inv_object
+
             # Перенаправление после успешной загрузки
             return render(request, 'invoice/upload_success.html',
                           {
                               'form': form,
-                              'pk': item
+                              'pk': item.id
                           })
     else:
         form = UploadFileForm()
@@ -327,8 +332,8 @@ def upload_second_sheet(request):
                 tarif=clear_data['tariff'],
                 sum_usl=clear_data['expenses']
             )
-        except IntegrityError:
-            logger.info("Запись с такими параметрами уже существует.")
+        except IntegrityError as e:
+            logger.info(f"Запись с такими параметрами уже существует. {e}")
     # endregion Сохраняем каждую строку данных в базу данных
 
     context = {

@@ -16,7 +16,7 @@
         pk = {{ pk }}
         setTimeout(function () {
             window.location.href = '{% url 'edit-book' pk=pk %}'; // Укажите нужный URL
-        }, 2500); // Время задержки в миллисекундах (5000 мс = 5 сек)
+        }, 2000); // Время задержки в миллисекундах (5000 мс = 5 сек)
     </script>
 
 {% endblock %}
