@@ -173,7 +173,7 @@ def parse_second_sheet(data_excel):
     return result
 
 
-def convert_date(report_date_str):
+def convert_date(report_date_str) -> datetime.date:
     """
     Преобразование формата даты
     :param report_date_str: Строка в формате dd.mm.yyyy
@@ -307,25 +307,28 @@ def upload_second_sheet(request):
         clear_data = parse_second_sheet(pers)
         # print("Словари: ", clear_data)
         # Запись в БД
-        InvoiceAttachment.objects.create(
-            invoice=InvoiceDNRDetails.objects.latest('id'),
-            conditions_of_medical_care=clear_data['conditions_of_medical_care'],
-            patients_name=clear_data['patients_name'],
-            birthday=convert_date(clear_data['birthday']),
-            policy_number=int(clear_data['policy_number']),
-            medical_care_profile_code=clear_data['medical_care_profile_code'],
-            doctors_specialty_code=clear_data['doctors_specialty_code'],
-            diagnosis=clear_data['diagnosis'],
-            start_date_of_treatment=convert_date(
-                clear_data['start_date_of_treatment']),
-            end_date_of_treatment=convert_date(
-                clear_data['end_date_of_treatment']),
-            treatment_result_code=clear_data['treatment_result_code'],
-            treatment_result_name=clear_data['treatment_result_name'],
-            volume_of_medical_care=clear_data['volume_of_medical_care'],
-            tariff=clear_data['tariff'],
-            expenses=clear_data['expenses']
-        )
+        try:
+            InvoiceAttachment.objects.create(
+                ext_id=InvoiceDNRDetails.objects.latest('id').id,
+                row_id=clear_data['conditions_of_medical_care'],
+                fio=clear_data['patients_name'],
+                dr=convert_date(clear_data['birthday']),
+                enp=int(clear_data['policy_number']),
+                profil_id=clear_data['medical_care_profile_code'],
+                spec_id=clear_data['doctors_specialty_code'],
+                dz=clear_data['diagnosis'],
+                date1=convert_date(
+                    clear_data['start_date_of_treatment']),
+                date2=convert_date(
+                    clear_data['end_date_of_treatment']),
+                rslt_id=clear_data['treatment_result_code'],
+                rslt_n=clear_data['treatment_result_name'],
+                cnt_usl=clear_data['volume_of_medical_care'],
+                tarif=clear_data['tariff'],
+                sum_usl=clear_data['expenses']
+            )
+        except IntegrityError:
+            logger.info("Запись с такими параметрами уже существует.")
     # endregion Сохраняем каждую строку данных в базу данных
 
     context = {

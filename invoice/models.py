@@ -4,6 +4,8 @@
 from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import UniqueConstraint
+
 
 # Данные счёта
 class InvoiceDNRDetails(models.Model):
@@ -70,91 +72,115 @@ class InvoiceAttachment(models.Model):
     Модель базы данных для приложения к счёту
     """
     # Устанавливается связь с таблицей InvoiceDNRDetails 1:1
-    invoice = models.ForeignKey(
+    ext = models.ForeignKey(
         InvoiceDNRDetails,
         related_name='invoice_details',
         on_delete=models.CASCADE  # Удаление деталей счёта удалит приложение
     )
-    # Поле кода вида и условий оказания медицинской помощи.
-    conditions_of_medical_care = models.IntegerField(
-        null=False,  # Поле не может быть NULL
-        blank=False,  # Поле не может быть пустым
-        verbose_name="Вид и условие оказания медицинской помощи"
+    usl_ok = models.IntegerField(
+        # Производная от row_id
+        null=True,
+        verbose_name="Условия оказания медицинской помощи"
     )
+    row_id = models.CharField(
+        max_length=10,
+        verbose_name="Условия оказания медицинской помощи"
+    )
+    # # Поле кода вида и условий оказания медицинской помощи.
+    # conditions_of_medical_care = models.IntegerField(
+    #     null=False,  # Поле не может быть NULL
+    #     blank=False,  # Поле не может быть пустым
+    #     verbose_name="Вид и условие оказания медицинской помощи"
+    # )
     # Поле Фамилии, Имени и Отчества пациента
-    patients_name = models.CharField(
-        max_length=120,  # Максимум 120 символов
-        null=False,  # Поле не может быть NULL
+    fio = models.CharField(
+        max_length=255,  # Максимум 120 символов
+        null=True,  # Поле может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Фамилия, Имя и Отчество пациента"
     )
-    # Поле даты рождения пациента
-    birthday = models.DateField(
-        null=False,  # Поле не может быть NULL
-        blank=False,  # Поле не может быть пустым
-        verbose_name="Дата отчётного периода"  # Название поля
+    mocod = models.IntegerField(
+        null=True,
+        verbose_name="Номер в реестре медицинских организаций"  # Название поля
+    )
+    tip = models.CharField(
+        max_length=50,
+        verbose_name="Единица измерения"  # Название поля
+    )
+    dr = models.DateField(
+        null=True,
+        verbose_name="Дата рождения пациента"  # Название поля
     )
     # Поле номера полиса медицинского страхования (ЕНП)
-    policy_number = models.PositiveBigIntegerField(
+    enp = models.PositiveBigIntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         help_text="Номер полиса обязательного медицинского страхования "
                   "застрахованного лица",  # Всплывающий текст подсказки
         verbose_name="ЕНП"  # Название поля
     )
+    subj_n = models.CharField(
+        max_length=255,
+        help_text="Наименование субъекта где выдан полис",  # Всплывающий текст подсказки
+        verbose_name="Субъект где выдан полис"  # Название поля
+    )
     # Поле кода профиля медицинской помощи
-    medical_care_profile_code = models.IntegerField(
-        null=False,  # Поле не может быть NULL
-        blank=False,  # Поле не может быть пустым
+    profil_id = models.IntegerField(
         verbose_name="Код профиля оказания медицинской помощи"  # Название поля
     )
+    profil_n = models.CharField(
+        max_length=255,
+        verbose_name="Наименование профиля оказания медицинской помощи"  # Название поля
+    )
     # Поле кода специальности врача
-    doctors_specialty_code = models.IntegerField(
-        null=False,  # Поле не может быть NULL
-        blank=False,  # Поле не может быть пустым
+    spec_id = models.IntegerField(
         verbose_name="Кода специальности врача"  # Название поля
     )
+    spec_n = models.CharField(
+        max_length=255,
+        verbose_name="Наименование специальности врача"  # Название поля
+    )
     # Поле кода диагноза
-    diagnosis = models.CharField(
-        max_length=5,
-        null=False,  # Поле не может быть NULL
+    dz = models.CharField(
+        max_length=20,
+        null=True,
         blank=False,  # Поле не может быть пустым
         help_text="МКБ-10",  # Всплывающий текст подсказки
         verbose_name="Кода диагноза"  # Название поля
     )
     # Поле даты начала лечения
-    start_date_of_treatment = models.DateField(
+    date1 = models.DateField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Дата начала лечения"  # Название поля
     )
     # Поле даты окончания лечения
-    end_date_of_treatment = models.DateField(
+    date2 = models.DateField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Дата окончания лечения"  # Название поля
     )
     # Поле кода результата лечения
-    treatment_result_code = models.IntegerField(
+    rslt_id = models.IntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Код результата лечения"  # Название поля
     )
     # Поле наименования результата лечения
-    treatment_result_name = models.CharField(
+    rslt_n = models.CharField(
         max_length=127,  # Максимум 127 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Результат лечения"  # Название поля
     )
     # Поле объёма медицинской помощи
-    volume_of_medical_care = models.IntegerField(
+    cnt_usl = models.IntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Объём медицинской помощи"  # Название поля
     )
     # Поле тарифа
-    tariff = models.FloatField(
+    tarif = models.FloatField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         help_text="Средний норматив финансовых затрат на единицу объема "
@@ -162,12 +188,30 @@ class InvoiceAttachment(models.Model):
         verbose_name="Тариф"  # Название поля
     )
     # Поле совокупных расходов (tariff * volume_of_medical_care)
-    expenses = models.FloatField(
+    sum_usl = models.FloatField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         help_text="Расходы на оказание медицинской помощи",
         verbose_name="Тариф"  # Название поля
     )
+    
+    id_pac = models.IntegerField(null=True)  # Признак завершения идентификации
+    pid = models.IntegerField(null=True)  # Идентификатор застрахованного лица
+    smo_id = models.CharField(max_length=30, null=True)  # Страховая медицинская организация
+    enp_id = models.CharField(max_length=16, null=True)  # ЕНП после идентификации
+    w_id = models.IntegerField(null=True)  # пол персоны из ФЕРЗЛ
+    oip_id = models.CharField(max_length=12, null=True)  # уникальный идентификатор персоны в ФЕРЗЛ
+    okato_id = models.CharField(max_length=10, null=True)  # ОКАТО территории страхования в ФЕРЗЛ
+    req_id = models.IntegerField(null=True)  # код запроса
+    req_result = models.CharField(max_length=255, null=True)  # результат идентификации в ФЕРЗЛ
+
+
+    class Meta:
+        unique_together = ('enp', 'dr', 'date1', 'date2')
+        constraints = [
+            UniqueConstraint(fields=['enp', 'dr', 'date1', 'date2'],
+                             name='unique_combination')
+        ]
 
 # Список субъектов
 class RegisterTerritorial(models.Model):

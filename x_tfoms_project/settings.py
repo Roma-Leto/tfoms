@@ -68,27 +68,29 @@ WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
 
 
 
-
+TEST_DB = True
 
 # Database
-
-DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-    'default': {
-        'ENGINE': 'mssql',
-        'NAME': 'mtrnt',  # Имя вашей базы данных
-        'USER': 'leto',       # Имя пользователя
-        'PASSWORD': '1MSLeto',   # Пароль
-        'HOST': '192.168.0.12', # Адрес сервера
-        'PORT': '1433',                # Порт (по умолчанию 1433 для MSSQL)
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',  # Укажите версию драйвера
-        },
+if TEST_DB:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'mssql',
+            'NAME': 'mtrnt',  # Имя вашей базы данных
+            'USER': 'leto',       # Имя пользователя
+            'PASSWORD': '1MSLeto',   # Пароль
+            'HOST': '192.168.0.12', # Адрес сервера
+            'PORT': '1433',                # Порт (по умолчанию 1433 для MSSQL)
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',  # Укажите версию драйвера
+            },
+        }
     }
-}
 
 
 # Password validation
