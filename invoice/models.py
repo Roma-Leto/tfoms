@@ -81,8 +81,10 @@ class InvoiceAttachment(models.Model):
     # Устанавливается связь с таблицей InvoiceDNRDetails 1:1
     ext = models.ForeignKey(
         InvoiceDNRDetails,
-        related_name='invoice_details',
+        related_name='invoice_att',
         # to_field='ext_id',
+        # db_column='ext_id',
+        # primary_key=True,
         on_delete=models.CASCADE  # Удаление деталей счёта удалит приложение
     )
     usl_ok = models.IntegerField(

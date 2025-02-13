@@ -7,7 +7,7 @@ from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
 
-from invoice.views import upload_file, DataUpdate, upload_second_sheet
+from invoice.views import upload_file, DataUpdate, upload_second_sheet, check_invoice_procedure_view
 import invoice.views as views
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,4 +19,5 @@ urlpatterns = [
     path('data_processing_result', upload_file, name='upload_file'),
 
     path('hello-world/', views.hello_world_view, name='hello_world'),
+    path('procedure_check/', views.check_invoice_procedure_view, name='check_invoice_procedure'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

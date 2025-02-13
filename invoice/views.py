@@ -54,7 +54,6 @@ def find_medical_docktor_code(lst: list):
     """
     numbers = []
     names = []
-    logger.info(f"Данные find_medical_docktor_code - {lst}")
     for item in lst:
         try:
             num = int(item)  # Сначала попробуем преобразовать в целое число
@@ -70,7 +69,6 @@ def find_medical_docktor_code(lst: list):
 
         if len(numbers) >= 2 and len(names) >= 2:
             break  # Останавливаемся, как только нашли два числа
-    print("NUMBERS: ", numbers, names)
     return numbers, names
 
 
@@ -135,9 +133,12 @@ def parse_second_sheet(data_excel):
         # print("data_excel", data_excel)
         # if len(data_excel) > 0 and len(data_excel[0]) > 14:
         if True:
-            result['conditions_of_medical_care'] = data_excel[0].split('.')[0]
+            result['conditions_of_medical_care'] = data_excel[0]
             # logger.info(f"Кода вида и условий оказания медицинской помощи "
             #             f"{result['conditions_of_medical_care']}")
+            result['usl_ok'] = 5 - int(data_excel[0][0])
+            result['mocod'] = data_excel[2]
+            result['tip'] = data_excel[3]
             result['patients_name'] = data_excel[1]
             # logger.info(f"ФИО {result['patients_name']}")
             result['birthday'] = data_excel[4]
@@ -162,8 +163,7 @@ def parse_second_sheet(data_excel):
                 find_medical_docktor_code(re.split(delimiters, data_excel[7]))[1][1]
             # logger.info(f"Код специальности врача "
             #             f"{result['doctors_specialty_code']}")
-
-
+            result['subj_n'] = data_excel[6]
             result['diagnosis'] = data_excel[8]
             # logger.info(f"Диагноз {result['diagnosis']}")
             result['start_date_of_treatment'] = data_excel[9]
@@ -183,6 +183,7 @@ def parse_second_sheet(data_excel):
             # logger.info(f"Тариф {result['tariff']}")
             result['expenses'] = data_excel[14]
             # logger.info(f"Расходы {result['expenses']}")
+
 
 
     except IndexError as e:
@@ -331,6 +332,9 @@ def upload_second_sheet(request):
         try:
             InvoiceAttachment.objects.create(
                 ext_id=InvoiceDNRDetails.objects.latest('id').id,
+                usl_ok=clear_data['usl_ok'],
+                mocod=clear_data['mocod'],
+                tip=clear_data['tip'],
                 row_id=clear_data['conditions_of_medical_care'],
                 fio=clear_data['patients_name'],
                 dr=convert_date(clear_data['birthday']),
@@ -339,6 +343,7 @@ def upload_second_sheet(request):
                 spec_id=clear_data['doctors_specialty_code'],
                 profil_n=clear_data['medical_care_profile_name'],
                 spec_n=clear_data['doctors_specialty_name'],
+                subj_n=clear_data['subj_n'],
                 dz=clear_data['diagnosis'],
                 date1=convert_date(
                     clear_data['start_date_of_treatment']),
@@ -374,16 +379,53 @@ class DataUpdate(UpdateView):
     success_url = 'save_second'
 
 
+def call_check_invoice_procedure(ext_id):
+    with connection.cursor() as cursor:
+        # Вызов хранимой процедуры с параметром
+        cursor.execute("EXEC dbo.check_invoice @ext_id = %s", [ext_id])
+        row = cursor.fetchone()
+        print("ROW: ", row)
+        #
+        # if row:
+        #     return row[0]  # Возвращаем сообщение
+        # return None
+
+def check_invoice_procedure_view(request):
+    field_data = InvoiceDNRDetails.objects.latest('id').id
+    print(field_data)
+    call_check_invoice_procedure(field_data)
+    now = datetime.datetime.now()
+    html = '<html lang="en"><body>It is now %s.</body></html>' % now
+    return HttpResponse(html)
+
+
+
+# ----------------------VVVV тест вызова процедуры VVVV-------------------------
+
+
 from django.shortcuts import render
 
 
 
 from django.http import HttpResponse
 from django.db import connection
+from django.http import JsonResponse
+
+
+def call_hello_world_procedure(name):
+    with connection.cursor() as cursor:
+        # Вызов хранимой процедуры с параметром
+        cursor.execute("EXEC dbo.hello_world @name = %s", [name])
+        row = cursor.fetchone()
+
+        if row:
+            return row[0]  # Возвращаем сообщение
+        return None
+
 
 def hello_world_view(request):
     """Тестовая функция вызова процедуры из БД"""
-    ver = 3
+    ver = 2
     message = 'Что-то произошло'
     if ver == 1:
         print('ver = 1')
@@ -394,16 +436,10 @@ def hello_world_view(request):
             except Exception as e:
                 message = f"Произошла ошибка при выполнении процедуры: {e}"
     elif ver == 2:
-        print('ver = 2')
-        with connection.cursor() as cursor:
-            output_message = cursor.fetchone(str)
-            try:
-                cursor.execute("EXEC dbo.hello_world")
-                result = cursor.fetchone()
-                message = result[
-                    0] if result else "Процедура выполнена, но ничего не вернула."
-            except Exception as e:
-                message = f"Произошла ошибка при выполнении процедуры: {e}"
+        name = request.GET.get('name',
+                               'World')  # Получаем параметр 'name' из запроса, по умолчанию 'World'
+        message = call_hello_world_procedure(name)
+        return JsonResponse({'message': message})
     else:
         print('ver pyodbc')
         import pyodbc
