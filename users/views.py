@@ -1,33 +1,20 @@
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LoginView
-from django.shortcuts import render
-from django.views import View
+
+from django.contrib.auth.views import LoginView, LogoutView
 
 from invoice.forms import UploadFileForm
-from invoice.models import InvoiceDNRDetails
-# region Imports
+
 import logging
-import re, os
-import uuid
+
 
 from django.contrib.auth.decorators import login_required
-from django.views.generic import UpdateView, FormView
+
 from openpyxl import load_workbook
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponseRedirect
-from datetime import datetime
-from django.db import IntegrityError, connection
-from pandas.conftest import names
-
-from utilities import timer
-from x_tfoms_project import settings
-
-# from .forms import UploadFileForm, DNRDetailsForm
-from invoice.models import (InvoiceDNRDetails, InvoiceAttachment, RegisterTerritorial,
+from django.shortcuts import render
+from django.db import IntegrityError
+from invoice.models import (InvoiceDNRDetails, RegisterTerritorial,
                             FileUpload)
-from invoice.views import (parse_first_sheet, parse_second_sheet, convert_date,
-                           find_medical_docktor_code, mouth_converter)
+from invoice.views import (parse_first_sheet, convert_date,
+                           mouth_converter)
 
 logger = logging.getLogger(__name__)
 
@@ -104,3 +91,5 @@ def profile(request):
             'form': form
         }
     return render(request, 'registration/profile.html', context=context)
+
+

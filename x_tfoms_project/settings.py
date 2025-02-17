@@ -126,7 +126,8 @@ AUTH_USER_MODEL = 'users.User'
 # login - admin
 # pass - admin
 
-LOGIN_REDIRECT_URL = 'registration/profile'
+LOGIN_REDIRECT_URL = 'profile/'
+LOGOUT_REDIRECT_URL = '/'
 
 # Static files (CSS, JavaScript, Images)
 

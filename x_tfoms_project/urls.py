@@ -2,6 +2,7 @@
 URL configuration for x_tfoms_project project.
 """
 from django.contrib import admin
+from django.contrib.auth.views import LogoutView
 from django.urls import path
 from django.views.generic import TemplateView
 from django.conf import settings
@@ -17,8 +18,9 @@ urlpatterns = [
     path('up/<int:pk>', DataUpdate.as_view(), name='edit-book'),
     path('upload_success/', TemplateView.as_view(template_name='invoice/upload_success.html'), name='upload_success'),
     path('upload_file/', upload_file, name='upload_file'),
-    path('login/registration/profile', profile, name='profile'),
-    path('login/', TLoginView.as_view(), name='login'),
+    path('profile/', profile, name='profile'),
+    path('', TLoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
     # path('data_processing_result/', upload_file, name='upload_file'),
 
     path('hello-world/', views.hello_world_view, name='hello_world'),
