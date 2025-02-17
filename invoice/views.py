@@ -3,6 +3,7 @@ import logging
 import re, os
 import uuid
 
+from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView, FormView
 from openpyxl import load_workbook
 from django.shortcuts import render, redirect, get_object_or_404
@@ -212,6 +213,7 @@ def convert_date(report_date_str) -> datetime.date:
 # endregion Utilities
 
 @timer
+@login_required
 def upload_file(request):
     """
     Функция загрузки файла для обработки

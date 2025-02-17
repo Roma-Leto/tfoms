@@ -71,7 +71,7 @@ class InvoiceDNRDetails(models.Model):
         pass
 
     def __str__(self):
-        return self.invoice_number
+        return str(self.invoice_number)
 
 # Записи пациентов
 class InvoiceAttachment(models.Model):

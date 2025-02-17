@@ -122,6 +122,12 @@ USE_TZ = True
 
 AUTH_USER_MODEL = 'users.User'
 
+# superuser
+# login - admin
+# pass - admin
+
+LOGIN_REDIRECT_URL = 'registration/profile'
+
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = 'static/'
