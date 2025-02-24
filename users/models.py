@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, AbstractUser
 from django.db import models
 
@@ -23,7 +25,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=30, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    date_joined = models.DateField()
+    date_joined = models.DateField(auto_now_add=True)
 
     objects = CustomUserManager()
 
