@@ -68,7 +68,7 @@ WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
 
 
 
-TEST_DB = True
+TEST_DB = False
 
 # Database
 if TEST_DB:
@@ -81,7 +81,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'mssql',
-            'NAME': 'mtrnt',  # Имя вашей базы данных
+            'NAME': 'mtrnt',  # Имя базы данных
             'USER': 'leto',       # Имя пользователя
             'PASSWORD': '1MSLeto',   # Пароль
             'HOST': '192.168.0.12', # Адрес сервера
