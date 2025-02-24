@@ -3,6 +3,7 @@ import logging
 import re, os
 import uuid
 
+from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.views.generic import UpdateView, FormView
 from openpyxl import load_workbook
@@ -225,7 +226,6 @@ def upload_file(request):
         if form.is_valid():
             file = request.FILES['file']
             uploaded_file = FileUpload(file=file)
-            uploaded_file.save()
             logger.info(f"Имя файла {file}. Сохранено")
 
             # Загрузка Excel-файла с помощью openpyxl
@@ -247,6 +247,8 @@ def upload_file(request):
                 row_number += 1
             # Извлекаем данные из ячеек документа и формируем словарь
             clear_data = parse_first_sheet(data_excel, file)
+            # Сохранение файла под номером счёта
+            uploaded_file.save(str(clear_data['invoice_number']))
             code_from_register = RegisterTerritorial.objects.get(
                 code=clear_data['code_fund'])
             # Создание записи первой страницы в БД
@@ -396,8 +398,8 @@ def check_invoice_procedure_view(request):
     field_data = InvoiceDNRDetails.objects.latest('id').id
     print(field_data)
     call_check_invoice_procedure(field_data)
-    now = datetime.datetime.now()
-    html = '<html lang="en"><body>It is now %s.</body></html>' % now
+    now = datetime.now()
+    html = '<html lang="en"><body>OK! result %s.</body></html>' % now
     return HttpResponse(html)
 
 

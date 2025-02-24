@@ -37,3 +37,7 @@ sudo ACCEPT_EULA=Y apt-get install msodbcsql17
 ```bash
 python manage.py createsuperuser 
 ```
+5. Удаление .idea из git
+```bash
+git rm --cached .idea -rf
+```

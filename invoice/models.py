@@ -247,3 +247,14 @@ class FileUpload(models.Model):
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
     result_file = models.FileField(upload_to='results/', null=True, blank=True)
+
+# View из MS SQL
+class InvoiceErrors(models.Model):
+    ext_id = models.BigIntegerField(blank=True, null=True)
+    attachment_id = models.BigIntegerField(blank=True, null=True)
+    error_list = models.CharField(max_length=8000)
+    error_text = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False  # Нельзя управлять таблицей
+        db_table = 'invoice_errors'
