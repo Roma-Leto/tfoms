@@ -9,59 +9,67 @@
     <link rel="stylesheet" href="{% static 'bootstrap-5.0.2-dist/css/bootstrap-grid.min.css' %}">
     <link href="{% static 'bootstrap-5.0.2-dist/css/bootstrap.min.css' %}" rel="stylesheet">
     <title>Профиль пользователя</title>
-    <style>
-    </style>
 </head>
-<body class="text-center">
-    
-    
-<div class="">
-        <h2>Profile</h2>
-    <p>Welcome, {{ user.username }}!</p>
-    
-    {% for item in invoices %}
-        <a href="{% url 'edit-book' pk=item.id %}">№ счёта {{ item }}</a> <br>
-    {% empty %}
-        <p>Нет загруженных счетов</p>
-    {% endfor %}
-    <form action="{% url 'logout' %}" method="post">
-    {% csrf_token %}
-    {% bootstrap_button button_type="submit" accept=".xls,.xlsx" content="Закрыть учётную запись" %}
-    </form>
-    </div>
-        
-     {% block content %}
-            
-            <div class="d-flex justify-content-center align-items-center vh-100">
-            
-            
-            
-            
-            
-            
-            <div class="bg-secondary bg-gradient text-white p-3 rounded-3 w-50 border border-dark">
-                
-                
-                
-                
-            
-            <h1>Загрузить счёт</h1>
-            
-            <!-- Форма для загрузки файла -->
-            <form id="upload-form" method="POST" enctype="multipart/form-data" class="form-floating">
-                {% csrf_token %}
-    {#            {% bootstrap_form form %}#}
-                {% bootstrap_field form.file show_label=False label_class="col-sm-2" field_class="col-sm-10" %}
-    {#            <input type="file" name="file" accept=".xls,.xlsx">#}
-        {#        <button type="submit">Загрузить файл</button>#}
-                {% bootstrap_button button_type="submit" accept=".xls,.xlsx" content="Загрузить" %}
-            </form>
-                
-            </div></div> 
-        
+<body class="text-center w-100">
 
-        
-    {% endblock %}
+    <div class="container ">
+
+        <div class="row">
+
+            <div class="col-10">
+                <h1>Профиль пользователя - {{ user.username }}</h1>
+
+            </div>
+
+            <div class="col text-end p-2">
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    {% bootstrap_button button_type="submit" accept=".xls,.xlsx" content="Выйти" %}
+                </form>
+            </div>
+
+        </div>
+    
+        <hr>
+    
+        <div class="row g-2">
+
+            <div class="col-8 text-start bg-light border p-3 me-1">
+                <h3>Загруженные документы:</h3>
+                {% for item in invoices %}
+                    <a href="{% url 'edit-book' pk=item.id %}">№ счёта {{ item }}</a> <br>
+                {% empty %}
+                    <p>Нет загруженных счетов</p>
+                {% endfor %}
+            </div>
+
+            <div class="col bg-light border p-3">
+                <h3>Сообщения</h3>
+            </div>
+
+        </div>
+    
+        <hr>
+    
+        <div id="upload_form" class="row align-items-end">
+            <div class="col">
+
+                <div class="d-flex justify-content-center align-items-center vh-90">
+                    <div class="bg-secondary bg-gradient text-white p-2 rounded-3 m-2 w-100 border border-dark">
+                        <h1>Загрузить счёт</h1>
+                        <!-- Форма для загрузки файла -->
+                        <form id="upload-form" method="POST" enctype="multipart/form-data" class="form-floating">
+                            {% csrf_token %}
+                            {% bootstrap_field form.file show_label=False label_class="col-sm-2" field_class="col-sm-10" %}
+                            {% bootstrap_button button_type="submit" accept=".xls,.xlsx" content="Загрузить" %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
     <!-- Подключение скриптов -->
     <script src="{% static 'bootstrap-5.0.2-dist/js/bootstrap.min.js' %}"></script>
     <script src="{% static 'bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js' %}"></script>

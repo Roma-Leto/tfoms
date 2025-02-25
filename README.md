@@ -41,3 +41,16 @@ python manage.py createsuperuser
 ```bash
 git rm --cached .idea -rf
 ```
+
+6. Запуск Redis (контейнер Docker)
+```bash
+sudo docker start redis
+```
+
+Подключение и проверка работы Redis
+```bash
+docker exec -it redis redis-cli
+set key 'hello'
+get key
+exit
+```

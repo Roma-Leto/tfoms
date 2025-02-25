@@ -258,3 +258,10 @@ class InvoiceErrors(models.Model):
     class Meta:
         managed = False  # Нельзя управлять таблицей
         db_table = 'invoice_errors'
+
+
+class InvoiceJobs(models.Model):
+    ext_id = models.BigIntegerField()
+    step_name = models.CharField(max_length=63)
+    status = models.CharField(max_length=63)
+    progress = models.IntegerField(blank=True, null=True)

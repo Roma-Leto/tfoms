@@ -362,13 +362,15 @@ def upload_second_sheet(request):
         except IntegrityError as e:
             logger.info(f"Запись с такими параметрами уже существует. {e}")
     # endregion Сохраняем каждую строку данных в базу данных
-
-    context = {
-        'data': "result data"
-    }
-
-    return render(request, 'invoice/data_processing_result.html', context)
-
+    # form = UploadFileForm()
+    # message = 'Данные второй страницы готовы'
+    # context = {
+    #     'form': form,
+    #     'message': message
+    # }
+    #
+    # return render(request, 'registration/profile.html', context)
+    return redirect('profile')
 
 class DataUpdate(UpdateView):
     model = InvoiceDNRDetails
@@ -398,6 +400,18 @@ def check_invoice_procedure_view(request):
     field_data = InvoiceDNRDetails.objects.latest('id').id
     print(field_data)
     call_check_invoice_procedure(field_data)
+    now = datetime.now()
+    html = '<html lang="en"><body>OK! result %s.</body></html>' % now
+    return HttpResponse(html)
+
+def call_frzl_update_procedure():
+    with connection.cursor() as cursor:
+        # Вызов хранимой процедуры с параметром
+        cursor.execute("EXEC dbo.frzl_update")
+
+
+def check_frzl_update_procedure_view(request):
+    call_frzl_update_procedure()
     now = datetime.now()
     html = '<html lang="en"><body>OK! result %s.</body></html>' % now
     return HttpResponse(html)
