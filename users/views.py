@@ -5,7 +5,7 @@ from invoice.forms import UploadFileForm
 
 import logging
 
-
+from x_tfoms_project.celery import debug_task
 from django.contrib.auth.decorators import login_required
 
 from openpyxl import load_workbook
@@ -24,12 +24,13 @@ class TLoginView(LoginView):
 
 @login_required
 def profile(request):
+    debug_task.delay()  # Тест работы Celery
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
             uploaded_file = FileUpload(file=file)
-            uploaded_file.save()
+
             logger.info(f"Имя файла {file}. Сохранено")
 
             # Загрузка Excel-файла с помощью openpyxl
@@ -51,6 +52,8 @@ def profile(request):
                 row_number += 1
             # Извлекаем данные из ячеек документа и формируем словарь
             clear_data = parse_first_sheet(data_excel, file)
+            # Сохранение файла под номером счёта
+            uploaded_file.save(str(clear_data['invoice_number']))
             code_from_register = RegisterTerritorial.objects.get(
                 code=clear_data['code_fund'])
             # Создание записи первой страницы в БД

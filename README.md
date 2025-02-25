@@ -54,3 +54,8 @@ set key 'hello'
 get key
 exit
 ```
+
+Узнать адрес Docker-контейнера Redis
+```bash
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redis
+```
