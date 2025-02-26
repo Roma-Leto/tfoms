@@ -1,20 +1,15 @@
-
-from django.contrib.auth.views import LoginView, LogoutView
-
-from invoice.forms import UploadFileForm
-
 import logging
 
+from django.contrib.auth.views import LoginView, LogoutView
+from invoice.forms import UploadFileForm
 from x_tfoms_project.celery import debug_task
 from django.contrib.auth.decorators import login_required
-
 from openpyxl import load_workbook
 from django.shortcuts import render
 from django.db import IntegrityError
-from invoice.models import (InvoiceDNRDetails, RegisterTerritorial,
-                            FileUpload)
-from invoice.views import (parse_first_sheet, convert_date,
-                           mouth_converter)
+
+from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload
+from invoice.views import parse_first_sheet, convert_date, mouth_converter
 
 logger = logging.getLogger(__name__)
 
