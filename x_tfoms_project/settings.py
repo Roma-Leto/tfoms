@@ -24,6 +24,8 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -65,10 +67,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'x_tfoms_project.wsgi.application'
+ASGI_APPLICATION = 'x_tfoms_project.asgi.application'
 
 
 
-TEST_DB = False
+TEST_DB = True
 
 # Database
 if TEST_DB:
@@ -204,10 +207,15 @@ LOGGING = {
 # region Celery + Redis
 # Команда для Docker для выявления ip контейнера:
 # docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redis
-REDIS_HOST = '172.17.0.2'
+# REDIS_HOST = '172.17.0.2'
+REDIS_HOST = 'localhost'
+# REDIS_HOST = 'redis'
 REDIS_PORT = '6379'
 CELERY_BROKER_URL = 'redis://' + REDIS_HOST + ':' + REDIS_PORT + '/0'
 BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 7200}
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
+# CELERY_BROKER_URL = 'redis://redis:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 
 # endregion Celery + Redis
