@@ -256,12 +256,31 @@ class InvoiceErrors(models.Model):
     error_text = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed = False  # Нельзя управлять таблицей
+        managed = True  # Нельзя управлять таблицей
         db_table = 'invoice_errors'
 
 
-class InvoiceJobs(models.Model):
-    ext_id = models.BigIntegerField()
-    step_name = models.CharField(max_length=63)
-    status = models.CharField(max_length=63)
-    progress = models.IntegerField(blank=True, null=True)
+class InvoiceInvoiceJobs(models.Model):
+    """Таблица флагов для отслеживания этапов обработки данных"""
+    id = models.BigAutoField(primary_key=True)
+    ext = models.ForeignKey('InvoiceDNRDetails', models.DO_NOTHING)
+    step = models.ForeignKey('InvoiceInvoicejobSteps', models.DO_NOTHING)
+    # status = models.CharField(max_length=255, db_collation='Cyrillic_General_CI_AS')
+    status = models.CharField(max_length=255)
+    ready = models.BooleanField()
+
+    class Meta:
+        managed = True
+        db_table = 'invoice_invoicejobs'
+
+
+class InvoiceInvoiceJobSteps(models.Model):
+    """Таблица с названиями этапов  обработки данных"""
+    id = models.BigAutoField(primary_key=True)
+    # step_name = models.CharField(max_length=36, db_collation='Cyrillic_General_CI_AS')
+    step_name = models.CharField(max_length=36)
+    step_order = models.IntegerField(unique=True)
+
+    class Meta:
+        managed = True
+        db_table = 'invoice_invoicejob_steps'
