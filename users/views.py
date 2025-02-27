@@ -5,7 +5,7 @@ from invoice.forms import UploadFileForm
 from x_tfoms_project.celery import debug_task
 from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.db import IntegrityError
 
 from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload
@@ -19,8 +19,10 @@ class TLoginView(LoginView):
 
 @login_required
 def profile(request):
-    debug_task.delay()  # Тест работы Celery
+    logger.info("func profile")
+    # debug_task.delay()  # Тест работы Celery
     if request.method == 'POST':
+        logger.info("func profile, method POST")
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
@@ -47,8 +49,6 @@ def profile(request):
                 row_number += 1
             # Извлекаем данные из ячеек документа и формируем словарь
             clear_data = parse_first_sheet(data_excel, file)
-            # Сохранение файла под номером счёта
-            uploaded_file.save(str(clear_data['invoice_number']))
             code_from_register = RegisterTerritorial.objects.get(
                 code=clear_data['code_fund'])
             # Создание записи первой страницы в БД
@@ -67,21 +67,20 @@ def profile(request):
                     total_amount=clear_data['total_amount'],
                     # ext_id=clear_data['ext_id']
                 )
+                # Сохранение файла под номером счёта
+                uploaded_file.save()
+                logger.info("func profile. Сохранение двнных первой странцы - ОК")
             except IntegrityError as e:
                 inv_object = InvoiceDNRDetails.objects.get(invoice_number=
                                                            clear_data['invoice_number'])
                 logger.error(f"Ошибка: {e}")
 
-            form = InvoiceDNRDetails(request.POST)
             item = inv_object
 
-            # Перенаправление после успешной загрузки
-            return render(request, 'invoice/upload_success.html',
-                          {
-                              'form': form,
-                              'pk': item.id
-                          })
+            return redirect('edit-book', item.id)
+
     else:
+        logger.info("func profile, method GET")
         invoice_list = InvoiceDNRDetails.objects.all()
         form = UploadFileForm()
         context = {

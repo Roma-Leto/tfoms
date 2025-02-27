@@ -6,7 +6,7 @@ from celery import Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'x_tfoms_project.settings')
 
 app = Celery(
-    'tfoms_celery',
+    'x_tfoms_project',
     namespace='CELERY',
     broker_connection_retry=True,
     broker_connection_retry_on_startup=True
@@ -14,7 +14,7 @@ app = Celery(
 
 app.config_from_object('django.conf:settings')
 
-app.autodiscover_tasks()
+app.autodiscover_tasks(['invoice'])
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
