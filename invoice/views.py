@@ -176,7 +176,13 @@ def upload_second_sheet(request):
     :return:
     """
     logger.info('Запуск сохранения данных пациентов')
-    celery_save_second_sheet.delay()
+    invoice_number = request.session.get('invoice_number')
+
+    # Очищаем сессию
+    if 'invoice_number' in request.session:
+        del request.session['invoice_number']
+
+    celery_save_second_sheet.delay(invoice_number)
     logger.info('Завершение сохранения данных пациентов')
     return redirect('profile')
 
@@ -192,6 +198,14 @@ class DataUpdate(UpdateView):
               ]
     template_name_suffix = "_update"
     success_url = 'save_second'
+
+    def form_valid(self, form):
+        # Перехват значения invoice_number из формы
+        invoice_number = form.cleaned_data['invoice_number']
+        # Сохранение номера счёта для передачи в функцию обработки второго листа
+        self.request.session['invoice_number'] = invoice_number
+        # Вызов родительского метода для сохранения формы
+        return super().form_valid(form)
 
 
 def call_check_invoice_procedure(ext_id):

@@ -133,13 +133,13 @@ def find_medical_docktor_code(lst: list):
 
 
 @shared_task
-def celery_save_second_sheet():
+def celery_save_second_sheet(invoice_number):
     """
     Парсинг и сохранения данных второго листа отчёта
     :return:
     """
     # region Поиск и загрузка файла счёта в память
-    item = InvoiceDNRDetails.objects.latest('id')
+    item = InvoiceDNRDetails.objects.get(invoice_number=invoice_number)
     filename = item.file_name.replace(' — ',
                                       '__')  # замена длинного тире на обычный дефис
     file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
