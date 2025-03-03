@@ -85,6 +85,7 @@ class InvoiceAttachment(models.Model):
         # to_field='ext_id',
         # db_column='ext_id',
         # primary_key=True,
+        # related_query_name='invoice_att',
         on_delete=models.CASCADE  # Удаление деталей счёта удалит приложение
     )
     usl_ok = models.IntegerField(
@@ -96,12 +97,6 @@ class InvoiceAttachment(models.Model):
         max_length=10,
         verbose_name="Условия оказания медицинской помощи"
     )
-    # # Поле кода вида и условий оказания медицинской помощи.
-    # conditions_of_medical_care = models.IntegerField(
-    #     null=False,  # Поле не может быть NULL
-    #     blank=False,  # Поле не может быть пустым
-    #     verbose_name="Вид и условие оказания медицинской помощи"
-    # )
     # Поле Фамилии, Имени и Отчества пациента
     fio = models.CharField(
         max_length=255,  # Максимум 120 символов
@@ -256,9 +251,12 @@ class InvoiceErrors(models.Model):
     error_text = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed = True  # Нельзя управлять таблицей
+        managed = False  # Нельзя управлять таблицей
+        unique_together = ('ext_id', 'attachment_id')
         db_table = 'invoice_errors'
 
+    # Переопределяем менеджер, чтобы отключить проверку первичного ключа
+    objects = models.Manager()
 
 class InvoiceInvoiceJobs(models.Model):
     """Таблица флагов для отслеживания этапов обработки данных"""

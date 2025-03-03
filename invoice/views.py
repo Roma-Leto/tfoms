@@ -4,7 +4,8 @@ import re, os
 import uuid
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-from django.views.generic import UpdateView, FormView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import UpdateView, FormView, DetailView
 from openpyxl import load_workbook
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseRedirect
@@ -187,7 +188,7 @@ def upload_second_sheet(request):
     return redirect('profile')
 
 
-class DataUpdate(UpdateView):
+class DataUpdate(UpdateView, LoginRequiredMixin):
     model = InvoiceDNRDetails
     fields = ['mouth_of_invoice_receipt',
               'year_of_invoice_receipt',
@@ -206,6 +207,19 @@ class DataUpdate(UpdateView):
         self.request.session['invoice_number'] = invoice_number
         # Вызов родительского метода для сохранения формы
         return super().form_valid(form)
+
+
+class InvoiceDetail(DetailView, LoginRequiredMixin):
+    model = InvoiceDNRDetails
+    template_name = 'invoice/invoice_details.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Добавляем связанные объекты
+        context['items'] = InvoiceAttachment.objects.filter(ext_id=self.kwargs['pk'])
+        # context['items'] = super().get_queryset().prefetch_related('invoice_att')
+        # context["now"] = timezone.now()
+        return context
 
 
 def call_check_invoice_procedure(ext_id):
@@ -321,3 +335,9 @@ def hello_world_view(request):
             conn.close()
 
     return HttpResponse(message)
+
+from invoice.tasks import create_report
+def excel_mock(request):
+    """# удалить после отладки формирования отчёта"""
+    create_report(34)
+    return HttpResponse("200")

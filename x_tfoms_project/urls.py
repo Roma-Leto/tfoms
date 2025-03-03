@@ -23,12 +23,16 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     # path('data_processing_result/', upload_file, name='upload_file'),
 
+    path('details/<int:pk>', views.InvoiceDetail.as_view(), name='details-list'),
+
     path('hello-world/', views.hello_world_view, name='hello_world'),
     path('procedure_invoice/', views.check_invoice_procedure_view, name='check_invoice_procedure'),
     path('procedure_frzl/', views.check_frzl_update_procedure_view, name='check_frzl_update_procedure'),
 
 
     path('tb/', TemplateView.as_view(template_name='invoice/test_boot.html'), name='tb'),
-    
+
+    path('mock/', views.excel_mock, name='mock'), # удалить после отладки формирования отчёта
+
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -207,8 +207,8 @@ LOGGING = {
 # region Celery + Redis
 # Команда для Docker для выявления ip контейнера:
 # docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redis
-# REDIS_HOST = '172.17.0.2'
-REDIS_HOST = 'localhost'
+REDIS_HOST = '172.17.0.2'
+# REDIS_HOST = 'localhost'
 # REDIS_HOST = 'redis'
 REDIS_PORT = '6379'
 CELERY_BROKER_URL = 'redis://' + REDIS_HOST + ':' + REDIS_PORT + '/0'

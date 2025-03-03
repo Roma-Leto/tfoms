@@ -1,0 +1,30 @@
+{% extends 'registration/profile.html' %}
+
+{% block title %}
+	Детали счёта
+{% endblock %}
+
+{% block title_page %}
+	<h1>Детали счёта</h1>
+{% endblock %}
+
+{% block base_l %}
+	Номер счёта: {{ object.invoice_number }} <br>
+    Дата: {{ object.mouth_of_invoice_receipt }}.{{ object.year_of_invoice_receipt }} <br>
+    Сумма: {{ object.total_amount }}
+{% endblock %}
+
+{% block button_exit %}
+    {% load django_bootstrap5 %}
+	<form action="{% url 'profile' %}" method="get">
+        {% csrf_token %}
+        {% bootstrap_button button_type="submit" content="Назад" %}
+    </form>
+{% endblock %}
+
+{% block footer %}
+	{% for item in items %}
+		{{ item.fio }}, {{ item.dr }}, ЕНП: {{ item.enp }} <br>
+	{% endfor %}
+	
+{% endblock %}
