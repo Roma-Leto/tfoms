@@ -417,14 +417,21 @@ def create_report(ext_id):
 
     from django.db.models import Sum
 
-    sum_by_category = InvoiceAttachment.objects.values('usl_ok').annotate(total_sum=Sum(F('cnt_usl') * F('tarif')))
-    print(sum_by_category)
-    # usl_ok_table = [
-    #     [
-    #         '4',
-    #
-    #     ]
-    # ]
+    sum_by_category = InvoiceAttachment.objects.values('usl_ok').annotate(total_usl=Sum('cnt_usl'), total_sum=Sum(F('cnt_usl') * F('tarif')))
+
+
+
+    sum_result = []
+    for x in sum_by_category:
+        sum_step = []
+        for y in x.values():
+            sum_step.append(y)
+        sum_result.append(sum_step)
+    print(sum_result)
+
+    for row_index, row_data in enumerate(sum_result, start=5):
+        for col_index, col_value in enumerate(row_data, start=1):
+            ws3.cell(row=row_index, column=col_index).value = col_value
 
     # endregion Формирование итоговой таблицы сумм. Страница
 
