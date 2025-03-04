@@ -1,8 +1,12 @@
 # region Imports
 import logging
 import re, os
+import json
+# from msilib.schema import Font
 
+from openpyxl.styles import Font
 import openpyxl.cell.cell
+from django.db.models.expressions import result, F
 from openpyxl import Workbook
 from celery import shared_task
 from pathlib import Path
@@ -11,6 +15,7 @@ from django.shortcuts import redirect
 from datetime import datetime
 from django.db import IntegrityError, connection
 from openpyxl.styles import Alignment
+from openpyxl.styles.builtins import title
 from openpyxl.utils import get_column_letter, column_index_from_string
 
 # from utilities import timer
@@ -82,7 +87,7 @@ def parse_second_sheet(data_excel):
             result['volume_of_medical_care'] = data_excel[12]
             # logger.info(
             # f"Объёма медицинской помощи {result['volume_of_medical_care']}")
-            result['tariff'] = data_excel[12]
+            result['tariff'] = data_excel[13]
             # logger.info(f"Тариф {result['tariff']}")
             result['expenses'] = data_excel[14]
             # logger.info(f"Расходы {result['expenses']}")
@@ -148,6 +153,23 @@ def call_procedure(ext_id):
         logger.info("call_procedure end")
     return 0
 
+
+def get_errors(id):
+    """Функция извлекает данные из поля errore_list таблицы invoice_errors"""
+    with connection.cursor() as cursor:
+        query = """
+            SELECT *
+            FROM invoice_errors
+            WHERE attachment_id = %s
+        """
+
+        params = [id]
+
+        cursor.execute(query, params)
+
+        data = cursor.fetchall()
+
+        return data
 
 def create_report(ext_id):
     logger.info("Создание итогового отчёта...")
@@ -216,7 +238,7 @@ def create_report(ext_id):
     for row in top_data:
         ws.append(row)
     # Установка высоты строки
-    ws.row_dimensions[2].height = 60  # Высота первой строки равна 60 пунктов
+    ws.row_dimensions[2].height = 80  # Высота первой строки равна 60 пунктов
 
     # Определяем желаемую ширину столбцов
     desired_width = 15  # Ширина в единицах (примерно соответствует ширине символа)
@@ -234,24 +256,176 @@ def create_report(ext_id):
         col_letter = get_column_letter(col_num)
         ws.column_dimensions[col_letter].width = desired_width
 
+
     # Включаем перенос текста в ячейке
-    for row in ws["A2:AR2"]:
+    for row in ws["A1:AR2"]:
         for cell in row:
             cell.alignment = Alignment(wrapText=True)
+
+    # Жирный шрифт
+    bolt_font = Font(bold=True)
+    for row in ws["O1:AR2"]:
+        for cell in row:
+            cell.font = bolt_font
+
+    ws.column_dimensions['O'].width = 7
+    ws.column_dimensions['P'].width = 45
+    ws.column_dimensions['S'].width = 30
+    ws.column_dimensions['N'].width = 25
+    ws.column_dimensions['U'].width = 35
+    ws.column_dimensions['W'].width = 35
+    ws.column_dimensions['AB'].width = 60
+
     # endregion Формирование шапки документа
 
     # region Формирование строки-записи документа. Страница 1
 
-    # Извлечение данных из таблицы ошибок (по ext_id)
-    # Отчистка данных и формирование пар "attachment_id": [error_list]
-    # Конвертация номера ошибки в букву ячейки
+    # Получаем всех ЗЛ из документа (по ext_id)
+    policyholder = InvoiceAttachment.objects.filter(ext_id=ext_id)
 
+    # Начальная строка для вставки данных в отчёт
+    starting_row = 3
+
+    # Перебираем все ЗЛ
+    for item in policyholder:
+        id_item = item.id
+
+        string_result = [
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            item.row_id,
+            item.fio,
+            item.mocod,
+            item.dr,
+            item.enp,
+            item.profil_id,
+            item.profil_n,
+            item.spec_id,
+            item.spec_n,
+            item.dz,
+            item.date1,
+            item.date2,
+            item.rslt_id,
+            item.rslt_n,
+            item.cnt_usl,
+            item.tarif,
+            item.sum_usl
+        ]
+
+        # Обработка данных об ошибках
+        result_errors = get_errors(id_item)
+        if result_errors:
+            top_error = result_errors[0][3]
+            other_errors = result_errors[0][2].strip('{[]}').split(',')
+            string_result[13] = top_error
+            for error in other_errors:
+                string_result[int(error)-1] = '1'
+
+        print(string_result)
+
+
+
+        # Цикл для вставки данных построчно
+        for col_num, value in enumerate(string_result, start=1):
+            ws.cell(row=starting_row, column=col_num).value = value
+
+        starting_row += 1
     # endregion Формирование строки-записи документа. Страница 1
 
     # region Формирование справочника документа. Страница 2
+
+    title_ws2 = [[
+        '№',
+        'Наименование ошибки',
+        'Серьёзность'
+    ]]
+
+    about_errors =[
+        ['1', 'не идентифицирован', 220],
+        ['2', 'код МО неверен', 230],
+        ['3', 'нет диагноза', 210],
+        ['4', 'диагноз не точен', 10],
+        ['5', 'неверный профиль', 170],
+        ['6', 'неверно пол + диагноз', 180],
+        ['7', 'диагноз не входит в ОМС', 200],
+        ['8', 'код результата не верен', 20],
+        ['9', 'неверная специальность', 160],
+        ['10', 'неверный профиль + возраст', 80],
+        ['11', 'неверная специальность + возраст', 70],
+        ['12', 'неверный профиль + пол', 150],
+        ['13', 'неверная специальность + усл.ок.', 140]
+    ]
+
+    # Формирование шапки таблицы второго листа
+    for row in title_ws2:
+        ws2.append(row)
+
+    for row_index, row_data in enumerate(about_errors, start=2):
+        for col_index, col_value in enumerate(row_data, start=1):
+            ws2.cell(row=row_index, column=col_index).value = col_value
+
+    # Определяем желаемую ширину столбца
+    ws2.column_dimensions['A'].width = 5
+    ws2.column_dimensions['B'].width = 50
+    ws2.column_dimensions['C'].width = 17
+
+    # Текст шапки жирным
+
+    ws2['A1'].font = bolt_font
+    ws2['B1'].font = bolt_font
+    ws2['C1'].font = bolt_font
+
     # endregion Формирование справочника документа. Страница 2
 
     # region Формирование итоговой таблицы сумм. Страница 3
+
+    # Определяем желаемую ширину столбца
+    ws3.column_dimensions['A'].width = 25
+    ws3.column_dimensions['B'].width = 20
+    ws3.column_dimensions['C'].width = 20
+
+    ws3['A1'].font = bolt_font
+    ws3['A1'] = 'Номер счёта'
+    ws3['B1'].font = bolt_font
+    ws3['B1'] = 'Дата счёта'
+    ws3['C1'].font = bolt_font
+    ws3['C1'] = 'Сумма счёта'
+
+    doc = InvoiceDNRDetails.objects.get(id=ext_id)
+
+    ws3['A2'] = doc.invoice_number
+    ws3['B2'] = doc.date_of_reporting_period
+    ws3['C2'] = doc.total_amount
+
+    headers_ws3 = ['Условия оказания', 'Количество', 'Сумма']
+
+    for col, header in enumerate(headers_ws3, start=1):
+        ws3.cell(row=4, column=col).value = header
+        ws3.cell(row=4, column=col).font = bolt_font
+
+    from django.db.models import Sum
+
+    sum_by_category = InvoiceAttachment.objects.values('usl_ok').annotate(total_sum=Sum(F('cnt_usl') * F('tarif')))
+    print(sum_by_category)
+    # usl_ok_table = [
+    #     [
+    #         '4',
+    #
+    #     ]
+    # ]
+
     # endregion Формирование итоговой таблицы сумм. Страница
 
     # Запись данных на страницу 3
@@ -267,6 +441,7 @@ def create_report(ext_id):
     # Python types will automatically be converted
     # import datetime
     # ws['A2'] = datetime.datetime.now()
+
 
     # region Сохранение в файл.
     # Путь к директории

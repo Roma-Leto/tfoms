@@ -339,5 +339,5 @@ def hello_world_view(request):
 from invoice.tasks import create_report
 def excel_mock(request):
     """# удалить после отладки формирования отчёта"""
-    create_report(34)
+    create_report(39)
     return HttpResponse("200")
