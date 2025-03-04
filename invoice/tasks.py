@@ -452,12 +452,19 @@ def create_report(ext_id):
 
     # region Сохранение в файл.
     # Путь к директории
-    directory = "./media/raports/"
-    # file_path = os.path.join(directory, f"raport_{item.invoice_number}.xlsx")
-    # file_path = os.path.join(directory, f"raport_test.xlsx")
-    file_path = "raport_test.xlsx"
+    directory = "./media/results/"
+    # file_path = os.path.join(directory, f"report_{item.invoice_number}.xlsx")
+    # file_path = os.path.join(directory, f"report_test.xlsx")
+    file_path = "report_test.xlsx"
     wb.save(file_path)
     # endregion Сохранение в файл.
+    step5 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=5)
+    step5.ready = True
+    step5.status = "Выполнено"
+    step5.save()
+
+    f = InvoiceDNRDetails.objects.get(id=ext_id)
+    f.file_name
     logger.info("Создание итогового отчёта - ОК")
 
 

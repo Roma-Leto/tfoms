@@ -1,6 +1,10 @@
 import logging
+from pyexpat.errors import messages
 
 from django.contrib.auth.views import LoginView, LogoutView
+from django.core.files.uploadedfile import UploadedFile
+from django.db.models.expressions import result, Subquery
+
 from invoice.forms import UploadFileForm
 from x_tfoms_project.celery import debug_task
 from django.contrib.auth.decorators import login_required
@@ -8,7 +12,7 @@ from openpyxl import load_workbook
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
 
-from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload
+from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload, InvoiceInvoiceJobs
 from invoice.views import parse_first_sheet, convert_date, mouth_converter
 
 logger = logging.getLogger(__name__)
@@ -21,13 +25,25 @@ class TLoginView(LoginView):
 def profile(request):
     logger.info("func profile")
     # debug_task.delay()  # Тест работы Celery
+
+    # # Шаг 1: Находим пять наибольших уникальных значений цены
+    # top_5_index = InvoiceInvoiceJobs.objects.values('ext_id').distinct().order_by('-ext_id')[:5]
+    #
+    # # Шаг 2: Используем Subquery, чтобы выбрать все строки с этими ценами
+    # top_index = InvoiceInvoiceJobs.objects.filter(ext_id__in=Subquery(top_5_index.values('ext_id')))
+
+    # Вывод результатов
+    message = ''
     if request.method == 'POST':
         logger.info("func profile, method POST")
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
+            # Получаем файл из формы
             uploaded_file = FileUpload(file=file)
-
+            # Создаем объект модели и сохраняем файл
+            # new_file = UploadedFile(file=uploaded_file)
+            # new_file.save()
             logger.info(f"Имя файла {file}. Сохранено")
 
             # Загрузка Excel-файла с помощью openpyxl
@@ -69,7 +85,7 @@ def profile(request):
                 )
                 # Сохранение файла под номером счёта
                 uploaded_file.save()
-                logger.info("func profile. Сохранение двнных первой странцы - ОК")
+                logger.info("func profile. Сохранение данных первой страницы - ОК")
             except IntegrityError as e:
                 inv_object = InvoiceDNRDetails.objects.get(invoice_number=
                                                            clear_data['invoice_number'])
@@ -85,7 +101,8 @@ def profile(request):
         form = UploadFileForm()
         context = {
             'invoices': invoice_list,
-            'form': form
+            'form': form,
+            'result': message,
         }
     return render(request, 'registration/profile.html', context=context)
 

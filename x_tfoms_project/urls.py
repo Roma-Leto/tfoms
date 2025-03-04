@@ -33,6 +33,8 @@ urlpatterns = [
     path('tb/', TemplateView.as_view(template_name='invoice/test_boot.html'), name='tb'),
 
     path('mock/', views.excel_mock, name='mock'), # удалить после отладки формирования отчёта
+    path('download/<str:file_name>/', views.download_file, name='download_file'),
+]
 
-
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

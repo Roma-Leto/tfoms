@@ -15,7 +15,7 @@ from pandas.conftest import names
 from utilities import timer
 from x_tfoms_project import settings
 from .forms import UploadFileForm, DNRDetailsForm
-from .models import InvoiceDNRDetails, InvoiceAttachment, RegisterTerritorial, FileUpload
+from .models import InvoiceDNRDetails, InvoiceAttachment, RegisterTerritorial, FileUpload, InvoiceInvoiceJobs
 from .tasks import celery_save_second_sheet, convert_date
 
 # endregion Imports
@@ -213,13 +213,33 @@ class InvoiceDetail(DetailView, LoginRequiredMixin):
     model = InvoiceDNRDetails
     template_name = 'invoice/invoice_details.html'
 
+    def get_context_object_name(self, obj):
+        return 'details'
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Добавляем связанные объекты
         context['items'] = InvoiceAttachment.objects.filter(ext_id=self.kwargs['pk'])
+        context['jobs'] = InvoiceInvoiceJobs.objects.filter(ext_id=self.kwargs['pk'])
         # context['items'] = super().get_queryset().prefetch_related('invoice_att')
         # context["now"] = timezone.now()
         return context
+
+
+# views.py
+
+from django.http import HttpResponse, Http404
+from django.conf import settings
+import os
+
+def download_file(request, file_name):
+    file_path = os.path.join(settings.MEDIA_ROOT, 'results', file_name)
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as file:
+            response = HttpResponse(file.read(), content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
+            return response
+    raise Http404("File not found")
 
 
 def call_check_invoice_procedure(ext_id):

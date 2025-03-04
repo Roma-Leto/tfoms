@@ -1,8 +1,6 @@
 """
 Описание моделей базы данных для приложения обработки счетов Invoice
 """
-from datetime import datetime
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import UniqueConstraint
 import uuid
@@ -66,6 +64,8 @@ class InvoiceDNRDetails(models.Model):
         editable=False,
         unique=True
     )
+    # file_origin = models.FileField(upload_to='results/')
+    # file_result = models.FileField(upload_to='results/')
 
     class Meta:
         pass
@@ -211,6 +211,8 @@ class InvoiceAttachment(models.Model):
     req_result = models.CharField(max_length=255, null=True)  # результат идентификации в ФЕРЗЛ
 
 
+
+
     class Meta:
         unique_together = ('enp', 'dr', 'date1', 'date2')
         constraints = [
@@ -242,6 +244,7 @@ class FileUpload(models.Model):
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
     result_file = models.FileField(upload_to='results/', null=True, blank=True)
+    parent = models.OneToOneField(InvoiceDNRDetails, on_delete=models.CASCADE)
 
 # View из MS SQL
 class InvoiceErrors(models.Model):

@@ -40,7 +40,7 @@
     
         <div class="row g-2">
 
-            <div class="col-8 text-start bg-light border p-3 me-1">
+            <div class="col text-start bg-light border p-3 me-1">
                 {% block base_l %}
                     <h3>Загруженные документы:</h3>
                     {% for item in invoices %}
@@ -52,11 +52,14 @@
                 {% endblock %}
             </div>
 
-            <div class="col bg-light border p-3">
-                {% block base_r %}
-                	<h3>Сообщения</h3>
-                {% endblock %} 
-            </div>
+{#            <div class="col bg-light border p-3">#}
+{#                {% block base_r %}#}
+{#                	<h3>Сообщения</h3>#}
+{#                    {% for item in result %}#}
+{#                        {{ item.ext_id }} {{ item.step_id }} {{ item.ready }}<br>#}
+{#                    {% endfor %}#}
+{#                {% endblock %} #}
+{#            </div>#}
 
         </div>
     

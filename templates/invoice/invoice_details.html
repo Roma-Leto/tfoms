@@ -11,7 +11,20 @@
 {% block base_l %}
 	Номер счёта: {{ object.invoice_number }} <br>
     Дата: {{ object.mouth_of_invoice_receipt }}.{{ object.year_of_invoice_receipt }} <br>
-    Сумма: {{ object.total_amount }}
+    Сумма: {{ object.total_amount }} <br><br><br>
+    Статусы: <br>
+    {% for job in jobs %}
+        <table class="table">
+            <tbody>
+                <tr>
+                    <td>{{ job.step.step_name }}</td>
+                    <td class="text-end">{{ job.status }} </td>
+                </tr>
+            </tbody>
+        </table>
+        
+    {% endfor %}
+    
 {% endblock %}
 
 {% block button_exit %}
@@ -23,8 +36,5 @@
 {% endblock %}
 
 {% block footer %}
-	{% for item in items %}
-		{{ item.fio }}, {{ item.dr }}, ЕНП: {{ item.enp }} <br>
-	{% endfor %}
-	
+    <p class="text-start">crfxfnm</p>
 {% endblock %}
