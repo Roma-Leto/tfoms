@@ -50,6 +50,10 @@
 {#      </li>#}
 {#    {% endfor %}#}
 {#  </ul>#}
-    {{ file }}
-     <a href="{% url 'download_file' file_id=file.id file_type='original' %}">Скачать оригинал</a>
+    
+    <p>{{ file }}</p>
+    <p><a href="{% url 'download_file' file_id=file.id file_type='original' %}">Скачать оригинал</a></p>
+    <p><a href="{% url 'download_file' file_id=file.id file_type='processed' %}">Скачать результат</a></p>
+     
+     
 {% endblock %}

@@ -8,6 +8,7 @@ billiard==4.2.1
 celery==5.4.0
 cffi==1.17.1
 channels==4.2.0
+channels_redis==4.2.1
 click==8.1.8
 click-didyoumean==0.3.1
 click-plugins==1.1.1
@@ -19,6 +20,7 @@ dill==0.3.9
 Django==5.0.12
 django-bootstrap5==24.3
 et_xmlfile==2.0.0
+gunicorn==23.0.0
 hyperlink==21.0.0
 hypothesis==6.127.1
 idna==3.10
@@ -27,6 +29,7 @@ iniconfig==2.0.0
 isort==6.0.0
 kombu==5.4.2
 mccabe==0.7.0
+msgpack==1.1.0
 mssql-django==1.5
 numpy==2.2.3
 openpyxl==3.1.5
@@ -58,5 +61,3 @@ tzdata==2025.1
 vine==5.1.0
 wcwidth==0.2.13
 zope.interface==7.2
-gunicorn
-channels-redis

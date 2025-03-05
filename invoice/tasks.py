@@ -464,7 +464,7 @@ def create_report(ext_id):
     step5.save()
 
     f = InvoiceDNRDetails.objects.get(id=ext_id)
-    f.file_name
+    # f.file_name
     logger.info("Создание итогового отчёта - ОК")
 
 
