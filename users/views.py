@@ -4,7 +4,9 @@ from pyexpat.errors import messages
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.files.uploadedfile import UploadedFile
 from django.db.models.expressions import result, Subquery
-
+from django.utils.timezone import now
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from invoice.forms import UploadFileForm
 from x_tfoms_project.celery import debug_task
 from django.contrib.auth.decorators import login_required
@@ -39,12 +41,12 @@ def profile(request):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
+
+
+
             # Получаем файл из формы
             uploaded_file = FileUpload(file=file)
-            # Создаем объект модели и сохраняем файл
-            # new_file = UploadedFile(file=uploaded_file)
-            # new_file.save()
-            logger.info(f"Имя файла {file}. Сохранено")
+
 
             # Загрузка Excel-файла с помощью openpyxl
             workbook = load_workbook(file, data_only=True)
@@ -84,7 +86,7 @@ def profile(request):
                     # ext_id=clear_data['ext_id']
                 )
                 # Сохранение файла под номером счёта
-                uploaded_file.save()
+                # uploaded_file.save()
                 logger.info("func profile. Сохранение данных первой страницы - ОК")
             except IntegrityError as e:
                 inv_object = InvoiceDNRDetails.objects.get(invoice_number=
@@ -92,6 +94,23 @@ def profile(request):
                 logger.error(f"Ошибка: {e}")
 
             item = inv_object
+            # Создаем объект модели и сохраняем файл
+            # Сохранение записи о файле
+            try:
+                uploaded_file = FileUpload(parent=item, file=file)
+                file_name = uploaded_file.save()
+                # uploaded_file = form.cleaned_data['file']
+                # file_name = default_storage.save(f"uploads/{uploaded_file.name}", ContentFile(uploaded_file.read()))
+                # file_path = default_storage.path(file_name)
+                FileUpload.objects.create(
+                    uploaded_at=now(),
+                    file=file_name,
+                    # parent_id=item.id
+                )
+                logger.info(f"Имя файла {file}. Сохранено")
+            except IntegrityError as e:
+                logger.info(f"Ошибка {e}")
+
 
             return redirect('edit-book', item.id)
 

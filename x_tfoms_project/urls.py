@@ -28,7 +28,8 @@ urlpatterns = [
     path('hello-world/', views.hello_world_view, name='hello_world'),
     path('procedure_invoice/', views.check_invoice_procedure_view, name='check_invoice_procedure'),
     path('procedure_frzl/', views.check_frzl_update_procedure_view, name='check_frzl_update_procedure'),
-
+    path('download/<int:file_id>/<str:file_type>/', views.download_file,
+         name='download_file'),
 
     path('tb/', TemplateView.as_view(template_name='invoice/test_boot.html'), name='tb'),
 

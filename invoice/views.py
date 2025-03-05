@@ -17,7 +17,25 @@ from x_tfoms_project import settings
 from .forms import UploadFileForm, DNRDetailsForm
 from .models import InvoiceDNRDetails, InvoiceAttachment, RegisterTerritorial, FileUpload, InvoiceInvoiceJobs
 from .tasks import celery_save_second_sheet, convert_date
+from django.shortcuts import render, redirect
+from .forms import UploadFileForm
 
+import pandas as pd
+import random
+import os
+from django.conf import settings
+
+
+import os
+import random
+import pandas as pd
+from django.shortcuts import render, get_object_or_404
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.http import FileResponse
+from django.utils.timezone import now
+
+from .forms import UploadFileForm
 # endregion Imports
 
 # region Utilities
@@ -221,6 +239,7 @@ class InvoiceDetail(DetailView, LoginRequiredMixin):
         # Добавляем связанные объекты
         context['items'] = InvoiceAttachment.objects.filter(ext_id=self.kwargs['pk'])
         context['jobs'] = InvoiceInvoiceJobs.objects.filter(ext_id=self.kwargs['pk'])
+        context['file'] = FileUpload.objects.get(parent_id=self.kwargs['pk'])
         # context['items'] = super().get_queryset().prefetch_related('invoice_att')
         # context["now"] = timezone.now()
         return context
@@ -232,14 +251,17 @@ from django.http import HttpResponse, Http404
 from django.conf import settings
 import os
 
-def download_file(request, file_name):
-    file_path = os.path.join(settings.MEDIA_ROOT, 'results', file_name)
-    if os.path.exists(file_path):
-        with open(file_path, 'rb') as file:
-            response = HttpResponse(file.read(), content_type='application/octet-stream')
-            response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
-            return response
-    raise Http404("File not found")
+def download_file(request, file_id, file_type):
+    uploaded_file = get_object_or_404(FileUpload, id=file_id)
+
+    if file_type == "original":
+        file_path = uploaded_file.file.path
+    elif file_type == "processed":
+        file_path = uploaded_file.result_file.path
+    else:
+        return render(request, "app1/home.html", {"error": "Неверный тип файла!"})
+
+    return FileResponse(open(default_storage.path(file_path), "rb"), as_attachment=True)
 
 
 def call_check_invoice_procedure(ext_id):

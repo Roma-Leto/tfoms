@@ -36,5 +36,20 @@
 {% endblock %}
 
 {% block footer %}
-    <p class="text-start">crfxfnm</p>
+    <h2>Файлы</h2>
+{#  <ul>#}
+{#    {% for file in files %}#}
+{#      <li>#}
+{#        {{ file.original_file.name }} - #}
+{#        <a href="{{ file.original_file.url }}">Скачать оригинал</a>#}
+{#        <a href="{% url 'download_file' file_id=file.id file_type='original' %}">Скачать оригинал</a>#}
+{#        {% if file.processed_file %} |#}
+{#          <a href="{{ file.processed_file.url }}">Скачать обработанный</a>#}
+{#          <a href="{% url 'download_file' file_id=file.id file_type='processed' %}">Скачать обработанный</a>#}
+{#        {% endif %}#}
+{#      </li>#}
+{#    {% endfor %}#}
+{#  </ul>#}
+    {{ file }}
+     <a href="{% url 'download_file' file_id=file.id file_type='original' %}">Скачать оригинал</a>
 {% endblock %}

@@ -1,6 +1,8 @@
 """
 Описание моделей базы данных для приложения обработки счетов Invoice
 """
+import os
+
 from django.db import models
 from django.db.models import UniqueConstraint
 import uuid
@@ -245,6 +247,9 @@ class FileUpload(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     result_file = models.FileField(upload_to='results/', null=True, blank=True)
     parent = models.OneToOneField(InvoiceDNRDetails, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return os.path.basename(self.file.name)
 
 # View из MS SQL
 class InvoiceErrors(models.Model):
