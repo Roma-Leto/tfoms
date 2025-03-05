@@ -455,8 +455,10 @@ def create_report(ext_id):
     directory = "./media/results/"
     # file_path = os.path.join(directory, f"report_{item.invoice_number}.xlsx")
     # file_path = os.path.join(directory, f"report_test.xlsx")
-    file_path = "report_test.xlsx"
-    wb.save(file_path)
+    status4 = InvoiceInvoiceJobs.objects.get(id=ext_id, status='4')
+    if status4.ready == 1:
+        file_path = "report_test.xlsx"
+        wb.save(file_path)
     # endregion Сохранение в файл.
     step5 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=5)
     step5.ready = True
