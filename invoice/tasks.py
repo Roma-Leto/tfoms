@@ -97,7 +97,7 @@ def parse_second_sheet(data_excel):
     except IndexError as e:
         logger.error(f"Ошибка при обработке данных: {e}")
 
-    logger.info(f"Result: {result}")
+    # logger.info(f"Result: {result}")
 
     return result
 
@@ -435,35 +435,24 @@ def create_report(ext_id):
 
     # endregion Формирование итоговой таблицы сумм. Страница
 
-    # Запись данных на страницу 3
-    # item = InvoiceDNRDetails.objects.get(id=ext_id)
-    # ws['C1'] = '№ счёта'
-    # ws['D1'] = 'Дата счёта'
-    # ws['E1'] = 'Сумма счёта'
-    #
-    # ws['C2'] = item.invoice_number
-    # ws['D2'] = item.mouth_of_invoice_receipt + item.year_of_invoice_receipt
-    # ws['E2'] = item.total_amount
-
-    # Python types will automatically be converted
-    # import datetime
-    # ws['A2'] = datetime.datetime.now()
-
 
     # region Сохранение в файл.
     # Путь к директории
     directory = "./media/results/"
     # file_path = os.path.join(directory, f"report_{item.invoice_number}.xlsx")
     # file_path = os.path.join(directory, f"report_test.xlsx")
-    status4 = InvoiceInvoiceJobs.objects.get(id=ext_id, status='4')
-    if status4.ready == 1:
+    logger.info("Проверка STATUS")
+
+    status4 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=4)
+    print(status4)
+    if status4.ready:
         file_path = "report_test.xlsx"
         wb.save(file_path)
-    # endregion Сохранение в файл.
-    step5 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=5)
-    step5.ready = True
-    step5.status = "Выполнено"
-    step5.save()
+        # endregion Сохранение в файл.
+        step5 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=5)
+        step5.ready = True
+        step5.status = "Выполнено"
+        step5.save()
 
     f = InvoiceDNRDetails.objects.get(id=ext_id)
     # f.file_name
