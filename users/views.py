@@ -13,7 +13,7 @@ from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload
 from invoice.views import parse_first_sheet, mouth_converter
 from invoice.tasks import convert_date
 logger = logging.getLogger(__name__)
-
+# TODO: обработать ситуацию отсутствия файлов для скачивания и сокрытия ссылок
 
 class TLoginView(LoginView):
     template_name = 'registration/login.html'
@@ -30,20 +30,16 @@ def profile(request):
             file = request.FILES['file']
             # Загрузка Excel-файла с помощью openpyxl
             workbook = load_workbook(file, data_only=True)
-            sheet_list = list()  # Список листов
-            # Итерируемся по всем листам
-            for sheet_name in workbook.sheetnames:
-                sheet = workbook[sheet_name]  # Получаем лист по имени
-                sheet_list.append(sheet)
-                logger.info(f'Название листа: {sheet_name}')  # Выводим имя листа
+            # Получаем первый лист
+            first_sheet_name = workbook.sheetnames[0]
+            first_sheet = workbook[first_sheet_name]
 
-            # Извлекаем данные первого листа
-            # итерируем по строкам листа
-            data_excel = list()
-            row_number = 0
-            for row in sheet_list[0].iter_rows(values_only=True):
-                data_excel.append(row)
-                row_number += 1
+            # Логируем название первого листа
+            logger.info(f'Название листа: {first_sheet_name}')
+
+            # Извлекаем данные из первого листа
+            data_excel = [row for row in first_sheet.iter_rows(values_only=True)]
+
             # Извлекаем данные из ячеек документа и формируем словарь
             clear_data = parse_first_sheet(data_excel, file)
             code_from_register = RegisterTerritorial.objects.get(
@@ -78,13 +74,9 @@ def profile(request):
             try:
                 uploaded_file = FileUpload(parent=item, file=file)
                 file_name = uploaded_file.save()
-                # uploaded_file = form.cleaned_data['file']
-                # file_name = default_storage.save(f"uploads/{uploaded_file.name}", ContentFile(uploaded_file.read()))
-                # file_path = default_storage.path(file_name)
                 FileUpload.objects.create(
                     uploaded_at=now(),
                     file=file_name,
-                    # parent_id=item.id
                 )
                 logger.info(f"Имя файла {file}. Сохранено")
             except IntegrityError as e:
