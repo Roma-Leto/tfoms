@@ -2,6 +2,9 @@
 import logging
 import re, os
 import json
+import tempfile
+
+from django.core.files import File
 # from msilib.schema import Font
 
 from openpyxl.styles import Font
@@ -20,7 +23,7 @@ from openpyxl.utils import get_column_letter, column_index_from_string
 
 # from utilities import timer
 from x_tfoms_project import settings
-from invoice.models import InvoiceDNRDetails, InvoiceAttachment, InvoiceInvoiceJobs, InvoiceInvoiceJobSteps
+from invoice.models import InvoiceDNRDetails, InvoiceAttachment, InvoiceInvoiceJobs, InvoiceInvoiceJobSteps, FileUpload
 
 # endregion Imports
 logger = logging.getLogger(__name__)
@@ -173,6 +176,20 @@ def get_errors(id):
 
 def create_report(ext_id):
     logger.info("Создание итогового отчёта...")
+
+    # Получаем объект InvoiceDNRDetails по идентификатору ext_id
+    try:
+        invoice_dnr_details = InvoiceDNRDetails.objects.get(id=ext_id)
+    except InvoiceDNRDetails.DoesNotExist:
+        raise Exception(f"Не найден объект InvoiceDNRDetails с id={ext_id}")
+    # Теперь получаем связанный объект FileUpload
+    try:
+        file_upload = FileUpload.objects.get(parent=invoice_dnr_details.id)
+    except FileUpload.DoesNotExist:
+        raise Exception("Запись не найдена.")
+    # Создаем временный файл
+    temp_file = tempfile.NamedTemporaryFile(suffix=".xlsx")
+
     # region Создание документа в памяти
     # Создание рабочей книги
     wb = Workbook()
@@ -333,7 +350,7 @@ def create_report(ext_id):
             for error in other_errors:
                 string_result[int(error)-1] = '1'
 
-        print(string_result)
+        # print(string_result)
 
 
 
@@ -443,11 +460,26 @@ def create_report(ext_id):
     # file_path = os.path.join(directory, f"report_test.xlsx")
     logger.info("Проверка STATUS")
 
+
+
     status4 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=4)
     print(status4)
     if status4.ready:
         file_path = "report_test.xlsx"
-        wb.save(file_path)
+
+        # TODO: Добавить обработчики других форматов
+        # Сохраняем файл Excel во временный файл
+        wb.save(temp_file.name)
+        # Определяем новое имя файла
+        new_filename = f'result_{os.path.basename(file_upload.file.name)}'
+
+        # Обновляем поле result_file
+        with open(temp_file.name, 'rb') as file_data:
+            file_upload.result_file.save(new_filename, File(file_data), save=False)
+
+        # Сохраняем изменения
+        file_upload.save()
+        # wb.save(file_path)
         # endregion Сохранение в файл.
         step5 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=5)
         step5.ready = True
