@@ -1,20 +1,15 @@
 import logging
-from pyexpat.errors import messages
 
-from django.contrib.auth.views import LoginView, LogoutView
-from django.core.files.uploadedfile import UploadedFile
-from django.db.models.expressions import result, Subquery
-from django.utils.timezone import now
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from invoice.forms import UploadFileForm
-from x_tfoms_project.celery import debug_task
-from django.contrib.auth.decorators import login_required
 from openpyxl import load_workbook
+from django.contrib.auth.views import LoginView
+from django.utils.timezone import now
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.db import IntegrityError
 
-from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload, InvoiceInvoiceJobs
+from x_tfoms_project.celery import debug_task
+from invoice.forms import UploadFileForm
+from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload
 from invoice.views import parse_first_sheet, convert_date, mouth_converter
 
 logger = logging.getLogger(__name__)
@@ -26,14 +21,6 @@ class TLoginView(LoginView):
 @login_required
 def profile(request):
     logger.info("func profile")
-    # debug_task.delay()  # Тест работы Celery
-
-    # # Шаг 1: Находим пять наибольших уникальных значений цены
-    # top_5_index = InvoiceInvoiceJobs.objects.values('ext_id').distinct().order_by('-ext_id')[:5]
-    #
-    # # Шаг 2: Используем Subquery, чтобы выбрать все строки с этими ценами
-    # top_index = InvoiceInvoiceJobs.objects.filter(ext_id__in=Subquery(top_5_index.values('ext_id')))
-
     # Вывод результатов
     message = ''
     if request.method == 'POST':
@@ -41,17 +28,9 @@ def profile(request):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = request.FILES['file']
-
-
-
-            # Получаем файл из формы
-            uploaded_file = FileUpload(file=file)
-
-
             # Загрузка Excel-файла с помощью openpyxl
             workbook = load_workbook(file, data_only=True)
             sheet_list = list()  # Список листов
-
             # Итерируемся по всем листам
             for sheet_name in workbook.sheetnames:
                 sheet = workbook[sheet_name]  # Получаем лист по имени
@@ -110,7 +89,6 @@ def profile(request):
                 logger.info(f"Имя файла {file}. Сохранено")
             except IntegrityError as e:
                 logger.info(f"Ошибка {e}")
-
 
             return redirect('edit-book', item.id)
 

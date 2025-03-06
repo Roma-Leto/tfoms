@@ -8,7 +8,7 @@ from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
 
-from invoice.views import upload_file, DataUpdate, upload_second_sheet
+from invoice.views import DataUpdate, upload_second_sheet
 from users.views import TLoginView, profile
 import invoice.views as views
 urlpatterns = [
@@ -17,7 +17,7 @@ urlpatterns = [
     path('up/save_second/', upload_second_sheet, name='save_second'),
     path('up/<int:pk>', DataUpdate.as_view(), name='edit-book'),
     path('upload_success/', TemplateView.as_view(template_name='invoice/upload_success.html'), name='upload_success'),
-    path('upload_file/', upload_file, name='upload_file'),
+    # path('upload_file/', upload_file, name='upload_file'),
     path('profile/', profile, name='profile'),
     path('', TLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
