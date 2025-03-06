@@ -61,7 +61,6 @@ def profile(request):
                     # ext_id=clear_data['ext_id']
                 )
                 # Сохранение файла под номером счёта
-                # uploaded_file.save()
                 logger.info("func profile. Сохранение данных первой страницы - ОК")
             except IntegrityError as e:
                 inv_object = InvoiceDNRDetails.objects.get(invoice_number=
