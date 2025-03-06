@@ -10,8 +10,8 @@ from django.db import IntegrityError
 from x_tfoms_project.celery import debug_task
 from invoice.forms import UploadFileForm
 from invoice.models import InvoiceDNRDetails, RegisterTerritorial, FileUpload
-from invoice.views import parse_first_sheet, convert_date, mouth_converter
-
+from invoice.views import parse_first_sheet, mouth_converter
+from invoice.tasks import convert_date
 logger = logging.getLogger(__name__)
 
 

@@ -1,41 +1,17 @@
 # region Imports
 import logging
-import re, os
 import uuid
-from datetime import datetime
-from django.contrib.auth.decorators import login_required
+
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import UpdateView, FormView, DetailView
-from openpyxl import load_workbook
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponseRedirect
-from datetime import datetime
-from django.db import IntegrityError, connection
-from pandas.conftest import names
-from utilities import timer
-from x_tfoms_project import settings
-from .forms import UploadFileForm, DNRDetailsForm
-from .models import InvoiceDNRDetails, InvoiceAttachment, RegisterTerritorial, FileUpload, InvoiceInvoiceJobs
-from .tasks import celery_save_second_sheet, convert_date
-from django.shortcuts import render, redirect
-from .forms import UploadFileForm
-
-import pandas as pd
-import random
-import os
-from django.conf import settings
-
-
-import os
-import random
-import pandas as pd
+from django.views.generic import UpdateView, DetailView
+from django.shortcuts import redirect
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from django.http import FileResponse
-from django.utils.timezone import now
+from django.http import FileResponse, HttpResponse
 
-from .forms import UploadFileForm
+from .models import InvoiceDNRDetails, InvoiceAttachment, FileUpload, InvoiceInvoiceJobs
+from .tasks import celery_save_second_sheet
+
 # endregion Imports
 
 # region Utilities
@@ -171,8 +147,6 @@ class InvoiceDetail(DetailView, LoginRequiredMixin):
         return context
 
 
-# views.py
-
 def download_file(request, file_id, file_type):
     uploaded_file = get_object_or_404(FileUpload, id=file_id)
 
@@ -180,127 +154,17 @@ def download_file(request, file_id, file_type):
         file_path = uploaded_file.file.path
     elif file_type == "processed":
         file_path = uploaded_file.result_file.path
-    else:
+    else: # TODO: обработка ошибки
         return render(request, "app1/home.html", {"error": "Неверный тип файла!"})
 
     return FileResponse(open(default_storage.path(file_path), "rb"), as_attachment=True)
 
 
-def call_check_invoice_procedure(ext_id):
-    with connection.cursor() as cursor:
-        # Вызов хранимой процедуры с параметром
-        cursor.execute("EXEC dbo.check_invoice @ext_id = %s", [ext_id])
-        row = cursor.fetchone()
-        print("ROW: ", row)
-        #
-        # if row:
-        #     return row[0]  # Возвращаем сообщение
-        # return None
-
-
-def check_invoice_procedure_view(request):
-    field_data = InvoiceDNRDetails.objects.latest('id').id
-    print(field_data)
-    call_check_invoice_procedure(field_data)
-    now = datetime.now()
-    html = '<html lang="en"><body>OK! result %s.</body></html>' % now
-    return HttpResponse(html)
-
-
-def call_frzl_update_procedure():
-    with connection.cursor() as cursor:
-        # Вызов хранимой процедуры с параметром
-        cursor.execute("EXEC dbo.frzl_update")
-
-
-def check_frzl_update_procedure_view(request):
-    call_frzl_update_procedure()
-    now = datetime.now()
-    html = '<html lang="en"><body>OK! result %s.</body></html>' % now
-    return HttpResponse(html)
-
-
-
 # ----------------------VVVV тест вызова процедуры VVVV-------------------------
 
-
-from django.shortcuts import render
-
-
-
-from django.http import HttpResponse
-from django.db import connection
-from django.http import JsonResponse
-
-
-def call_hello_world_procedure(name):
-    with connection.cursor() as cursor:
-        # Вызов хранимой процедуры с параметром
-        cursor.execute("EXEC dbo.hello_world @name = %s", [name])
-        row = cursor.fetchone()
-
-        if row:
-            return row[0]  # Возвращаем сообщение
-        return None
-
-
-def hello_world_view(request):
-    """Тестовая функция вызова процедуры из БД"""
-    ver = 2
-    message = 'Что-то произошло'
-    if ver == 1:
-        print('ver = 1')
-        with connection.cursor() as cursor:
-            try:
-                cursor.execute("EXEC dbo.hello_world")
-                message = "Процедура выполнена успешно!"
-            except Exception as e:
-                message = f"Произошла ошибка при выполнении процедуры: {e}"
-    elif ver == 2:
-        name = request.GET.get('name',
-                               'World')  # Получаем параметр 'name' из запроса, по умолчанию 'World'
-        message = call_hello_world_procedure(name)
-        return JsonResponse({'message': message})
-    else:
-        print('ver pyodbc')
-        import pyodbc
-
-        # Настройки подключения к базе данных
-        server = '192.168.0.12'
-        database = 'mtrnt'
-        username = 'leto'
-        password = '1MSLeto'
-        driver = '{ODBC Driver 17 for SQL Server}'
-
-        # Соединение с базой данных
-        connection_string = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}'
-        conn = pyodbc.connect(connection_string)
-        cursor = conn.cursor()
-
-        try:
-            # Выполнение процедуры
-            cursor.execute("EXEC dbo.hello_world")
-
-            # Получение результата (если процедура возвращает данные)
-            message = cursor.fetchall()
-
-            # Обработка результата
-            if message:
-                print(f"Результат выполнения процедуры: {message}")
-            else:
-                print("Процедура выполнена успешно!")
-
-            return HttpResponse(message)
-        except pyodbc.Error as e:
-            print(f"Произошла ошибка при выполнении процедуры: {e}")
-        finally:
-            # Закрываем соединение
-            cursor.close()
-            conn.close()
-
-    return HttpResponse(message)
-
 from invoice.tasks import create_report
+
+
 def excel_mock(request):
     """# удалить после отладки формирования отчёта"""
     create_report(39)

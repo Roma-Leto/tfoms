@@ -25,9 +25,9 @@ urlpatterns = [
 
     path('details/<int:pk>', views.InvoiceDetail.as_view(), name='details-list'),
 
-    path('hello-world/', views.hello_world_view, name='hello_world'),
-    path('procedure_invoice/', views.check_invoice_procedure_view, name='check_invoice_procedure'),
-    path('procedure_frzl/', views.check_frzl_update_procedure_view, name='check_frzl_update_procedure'),
+    # path('hello-world/', views.hello_world_view, name='hello_world'),
+    # path('procedure_invoice/', views.check_invoice_procedure_view, name='check_invoice_procedure'),
+    # path('procedure_frzl/', views.check_frzl_update_procedure_view, name='check_frzl_update_procedure'),
     path('download/<int:file_id>/<str:file_type>/', views.download_file,
          name='download_file'),
 
