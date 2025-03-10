@@ -111,29 +111,16 @@ def parse_first_sheet_lnr(data_excel, file):
     :return: словарь result
     """
     result = dict()
-    print(data_excel)
+    print(str(uuid.uuid4()))
     try:
         # Проверка данных перед обработкой
-        if len(data_excel) > 0 and len(data_excel[0]) > 3:
-            result['invoice_number'] = data_excel[0][3].split(' ')[2]
-
-        if len(data_excel) > 4 and len(data_excel[4]) > 3:
-            result['mouth_of_invoice_receipt'] = data_excel[4][3].split(' ')[1]
-            result['year_of_invoice_receipt'] = data_excel[4][3].split(' ')[2]
-
-        postfix = '000'
-        if len(data_excel) > 21 and len(data_excel[21]) > 0:
-            # Выбираем первые 2 символа из строки и присоединяем три нуля в конце
-            result['code_fund'] = int(list(data_excel[21][-1])[0]
-                                      + list(data_excel[21][-1])[1]
-                                      + postfix)
-
-        if len(data_excel) > 19 and len(data_excel[19]) > 0:
-            result['date_of_reporting_period'] = data_excel[19][-1]
-
-        if len(data_excel) > 23 and len(data_excel[23]) > 2:
-            result['total_amount'] = data_excel[23][2]
-
+        # if len(data_excel) > 19 and len(data_excel[0]) > 5:
+        result['invoice_number'] = data_excel[4][1].split(' ')[1]
+        result['mouth_of_invoice_receipt'] = data_excel[8][1].split(' ')[0]
+        result['year_of_invoice_receipt'] = data_excel[8][2][0:4]
+        result['code_fund'] = int(str(data_excel[12][4])[0:5])
+        result['date_of_reporting_period'] = data_excel[11][4]
+        result['total_amount'] = data_excel[18][3] # FIXME: Заглушка. Нет данных на странице
         result['ext_id'] = str(uuid.uuid4())
 
         logger.info(
@@ -184,6 +171,7 @@ def save_data_from_first_sheet(data_excel: list, file: FileUpload) -> object:
 def save_data_from_first_sheet_lnr(data_excel: list, file: FileUpload) -> object:
     # Извлекаем данные из ячеек документа и формируем словарь
     clear_data = parse_first_sheet_lnr(data_excel, file)
+    print(clear_data)
     code_from_register = RegisterTerritorial.objects.get(
         code=clear_data['code_fund'])
     # Создание записи первой страницы в БД
@@ -195,8 +183,8 @@ def save_data_from_first_sheet_lnr(data_excel: list, file: FileUpload) -> object
                 clear_data['mouth_of_invoice_receipt']),
             year_of_invoice_receipt=clear_data['year_of_invoice_receipt'],
             # Преобразование даты в формат YYYY-MM-DD
-            date_of_reporting_period=convert_date(
-                clear_data['date_of_reporting_period']),
+            date_of_reporting_period=
+                clear_data['date_of_reporting_period'],
             code_fund=code_from_register,
             invoice_number=clear_data['invoice_number'],
             total_amount=clear_data['total_amount'],
@@ -278,7 +266,7 @@ def download_file(request, file_id, file_type):
         file_path = uploaded_file.file.path
     elif file_type == "processed":
         file_path = uploaded_file.result_file.path
-    else:  # TODO: обработка ошибки
+    else:
         return render(request, "app1/home.html", {"error": "Неверный тип файла!"})
 
     return FileResponse(open(default_storage.path(file_path), "rb"), as_attachment=True)
