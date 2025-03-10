@@ -15,7 +15,7 @@ class InvoiceDNRDetails(models.Model):
     """
     # Поле имени загруженного файла
     file_name = models.CharField(
-        max_length=30,  # Максимум 30 символов
+        max_length=255,  # Максимум 30 символов
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Имя файла"  # Название поля

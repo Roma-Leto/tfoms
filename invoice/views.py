@@ -9,6 +9,7 @@ from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.http import FileResponse, HttpResponse
 from django.db import IntegrityError
+from redis.commands.search.reducers import count
 
 from .models import InvoiceDNRDetails, InvoiceAttachment, FileUpload, InvoiceInvoiceJobs, RegisterTerritorial
 from .tasks import celery_save_second_sheet, convert_date
@@ -49,13 +50,26 @@ def region_identification(data_excel: list) -> str:
     data_excel: список кортежей-строк документа
     return: str
     """
+    from collections import Counter
+    cnt = []
+    # Создаем объект Counter, который подсчитает частоту каждого элемента
+
     for data in data_excel:
         for d in data:
             if d is not None:
-                if "Донецк" in d:
-                    return 'Донецк'
-                elif "Луганск" in d:
-                    return 'Луганск'
+                try:
+                    if "Донецк" in d:
+                        cnt.append('Донецк')
+                    elif "Луганск" in d:
+                        cnt.append('Луганск')
+                except Exception as e:
+                    logging.error(f"Произошла ошибка: {e}")
+
+    counter = Counter(cnt)
+    # Находим наиболее часто встречающийся элемент
+    most_common_string, frequency = counter.most_common(1)[0]
+    logger.info(f"Наиболее частая строка: '{most_common_string}', встречается {frequency} раз(а)")
+    return most_common_string
 
 
 def parse_first_sheet(data_excel, file):
@@ -111,7 +125,7 @@ def parse_first_sheet_lnr(data_excel, file):
     :return: словарь result
     """
     result = dict()
-    print(str(uuid.uuid4()))
+
     try:
         # Проверка данных перед обработкой
         # if len(data_excel) > 19 and len(data_excel[0]) > 5:
@@ -120,7 +134,7 @@ def parse_first_sheet_lnr(data_excel, file):
         result['year_of_invoice_receipt'] = data_excel[8][2][0:4]
         result['code_fund'] = int(str(data_excel[12][4])[0:5])
         result['date_of_reporting_period'] = data_excel[11][4]
-        result['total_amount'] = data_excel[18][3] # FIXME: Заглушка. Нет данных на странице
+        result['total_amount'] = data_excel[18][3] if data_excel[18][3] is not None else 0 # FIXME: Заглушка. Нет данных на странице
         result['ext_id'] = str(uuid.uuid4())
 
         logger.info(
