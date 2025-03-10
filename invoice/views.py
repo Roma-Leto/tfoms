@@ -8,9 +8,10 @@ from django.shortcuts import redirect
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.http import FileResponse, HttpResponse
+from django.db import IntegrityError
 
-from .models import InvoiceDNRDetails, InvoiceAttachment, FileUpload, InvoiceInvoiceJobs
-from .tasks import celery_save_second_sheet
+from .models import InvoiceDNRDetails, InvoiceAttachment, FileUpload, InvoiceInvoiceJobs, RegisterTerritorial
+from .tasks import celery_save_second_sheet, convert_date
 
 # endregion Imports
 
@@ -40,6 +41,21 @@ def mouth_converter(mouth: str) -> int:
     }
 
     return mouth_dict[mouth.lower()]
+
+
+def region_identification(data_excel: list) -> str:
+    """
+    Определяет регион по данным первого листа заявки
+    data_excel: список кортежей-строк документа
+    return: str
+    """
+    for data in data_excel:
+        for d in data:
+            if d is not None:
+                if "Донецк" in d:
+                    return 'Донецк'
+                elif "Луганск" in d:
+                    return 'Луганск'
 
 
 def parse_first_sheet(data_excel, file):
@@ -86,6 +102,114 @@ def parse_first_sheet(data_excel, file):
     except IndexError as e:
         logger.error(f"Ошибка при обработке данных: {e}")
     return result
+
+
+def parse_first_sheet_lnr(data_excel, file):
+    """
+    Функция парсинга excel-файла
+    :param data_excel: кортеж данных, извлечённых со страницы документа
+    :return: словарь result
+    """
+    result = dict()
+    print(data_excel)
+    try:
+        # Проверка данных перед обработкой
+        if len(data_excel) > 0 and len(data_excel[0]) > 3:
+            result['invoice_number'] = data_excel[0][3].split(' ')[2]
+
+        if len(data_excel) > 4 and len(data_excel[4]) > 3:
+            result['mouth_of_invoice_receipt'] = data_excel[4][3].split(' ')[1]
+            result['year_of_invoice_receipt'] = data_excel[4][3].split(' ')[2]
+
+        postfix = '000'
+        if len(data_excel) > 21 and len(data_excel[21]) > 0:
+            # Выбираем первые 2 символа из строки и присоединяем три нуля в конце
+            result['code_fund'] = int(list(data_excel[21][-1])[0]
+                                      + list(data_excel[21][-1])[1]
+                                      + postfix)
+
+        if len(data_excel) > 19 and len(data_excel[19]) > 0:
+            result['date_of_reporting_period'] = data_excel[19][-1]
+
+        if len(data_excel) > 23 and len(data_excel[23]) > 2:
+            result['total_amount'] = data_excel[23][2]
+
+        result['ext_id'] = str(uuid.uuid4())
+
+        logger.info(
+            f"\n№ счёта {result['invoice_number']}\n"
+            f"Месяц {result['mouth_of_invoice_receipt']}\n"
+            f"Год {result['year_of_invoice_receipt']}\n"
+            f"Код ТФ {result['code_fund']}\n"
+            f"Дата счёта {result['date_of_reporting_period']}\n"
+            f"Сумма счёта {result['total_amount']}\n"
+        )
+
+    except IndexError as e:
+        logger.error(f"Ошибка при обработке данных: {e}")
+    return result
+
+
+def save_data_from_first_sheet(data_excel: list, file: FileUpload) -> object:
+    # Извлекаем данные из ячеек документа и формируем словарь
+    clear_data = parse_first_sheet(data_excel, file)
+    code_from_register = RegisterTerritorial.objects.get(
+        code=clear_data['code_fund'])
+    # Создание записи первой страницы в БД
+    try:
+        inv_object = InvoiceDNRDetails.objects.create(
+            file_name=file,
+            # Передаём месяц в виде числа используя функцию конвертации
+            mouth_of_invoice_receipt=mouth_converter(
+                clear_data['mouth_of_invoice_receipt']),
+            year_of_invoice_receipt=clear_data['year_of_invoice_receipt'],
+            # Преобразование даты в формат YYYY-MM-DD
+            date_of_reporting_period=convert_date(
+                clear_data['date_of_reporting_period']),
+            code_fund=code_from_register,
+            invoice_number=clear_data['invoice_number'],
+            total_amount=clear_data['total_amount'],
+            # ext_id=clear_data['ext_id']
+        )
+        # Сохранение файла под номером счёта
+        logger.info("func profile. Сохранение данных первой страницы - ОК")
+    except IntegrityError as e:
+        inv_object = InvoiceDNRDetails.objects.get(invoice_number=
+                                                   clear_data['invoice_number'])
+        logger.error(f"Ошибка: {e}")
+
+    return inv_object
+
+
+def save_data_from_first_sheet_lnr(data_excel: list, file: FileUpload) -> object:
+    # Извлекаем данные из ячеек документа и формируем словарь
+    clear_data = parse_first_sheet_lnr(data_excel, file)
+    code_from_register = RegisterTerritorial.objects.get(
+        code=clear_data['code_fund'])
+    # Создание записи первой страницы в БД
+    try:
+        inv_object = InvoiceDNRDetails.objects.create(
+            file_name=file,
+            # Передаём месяц в виде числа используя функцию конвертации
+            mouth_of_invoice_receipt=mouth_converter(
+                clear_data['mouth_of_invoice_receipt']),
+            year_of_invoice_receipt=clear_data['year_of_invoice_receipt'],
+            # Преобразование даты в формат YYYY-MM-DD
+            date_of_reporting_period=convert_date(
+                clear_data['date_of_reporting_period']),
+            code_fund=code_from_register,
+            invoice_number=clear_data['invoice_number'],
+            total_amount=clear_data['total_amount'],
+            # ext_id=clear_data['ext_id']
+        )
+        # Сохранение файла под номером счёта
+        logger.info("func profile. Сохранение данных первой страницы - ОК")
+    except IntegrityError as e:
+        inv_object = InvoiceDNRDetails.objects.get(invoice_number=
+                                                   clear_data['invoice_number'])
+        logger.error(f"Ошибка: {e}")
+
+    return inv_object
 
 
 # endregion Utilities
@@ -154,7 +278,7 @@ def download_file(request, file_id, file_type):
         file_path = uploaded_file.file.path
     elif file_type == "processed":
         file_path = uploaded_file.result_file.path
-    else: # TODO: обработка ошибки
+    else:  # TODO: обработка ошибки
         return render(request, "app1/home.html", {"error": "Неверный тип файла!"})
 
     return FileResponse(open(default_storage.path(file_path), "rb"), as_attachment=True)

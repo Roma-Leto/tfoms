@@ -515,7 +515,7 @@ def celery_save_second_sheet(invoice_number):
 
     # region Формируем список листов
     # Загрузка Excel-файла с помощью openpyxl
-    workbook = load_workbook(file_path, data_only=True)
+    # workbook = load_workbook(file_path, data_only=True)
     sheet_list = list()
     for sheet_name in workbook.sheetnames:
         sheet = workbook[sheet_name]  # Получаем лист по имени
