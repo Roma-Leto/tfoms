@@ -48,7 +48,8 @@ class InvoiceDNRDetails(models.Model):
         verbose_name="Код территориального фонда"  # Название поля
     )
     # Поле номера счёта
-    invoice_number = models.IntegerField(
+    invoice_number = models.CharField(
+        max_length=32,
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
         verbose_name="Номер счёта",  # Название поля

@@ -43,7 +43,7 @@ def profile(request):
 
             region = region_identification(data_excel)
             if region == 'Донецк':
-                item = save_data_from_first_sheet_lnr(data_excel, file)
+                item = save_data_from_first_sheet(data_excel, file)
             elif region == 'Луганск':
                 item = save_data_from_first_sheet_lnr(data_excel, file)
 
