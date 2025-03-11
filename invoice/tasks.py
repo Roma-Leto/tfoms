@@ -21,6 +21,7 @@ from openpyxl.styles import Alignment
 from openpyxl.styles.builtins import title
 from openpyxl.utils import get_column_letter, column_index_from_string
 
+import invoice.validators
 # from utilities import timer
 from x_tfoms_project import settings
 from invoice.models import InvoiceDNRDetails, InvoiceAttachment, InvoiceInvoiceJobs, InvoiceInvoiceJobSteps, FileUpload
@@ -38,7 +39,6 @@ def parse_second_sheet(data_excel):
     :return: словарь result
     """
     result = dict()
-    print("parse_second_sheet, data_excel", data_excel)
     try:
         # Проверка данных перед обработкой
         # print("data_excel", data_excel)
@@ -94,6 +94,80 @@ def parse_second_sheet(data_excel):
             # logger.info(f"Тариф {result['tariff']}")
             result['expenses'] = data_excel[14]
             # logger.info(f"Расходы {result['expenses']}")
+
+
+
+    except IndexError as e:
+        logger.error(f"Ошибка при обработке данных: {e}")
+
+    logger.info(f"Result: {result}")
+
+    return result
+
+
+def parse_second_sheet_lnr(data_excel):
+    """
+    Функция парсинга excel-файла
+    :param data_excel: кортеж данных, извлечённых со страницы документа
+    :return: словарь result
+    """
+    result = dict()
+    print("parse_second_sheet, data_excel", data_excel)
+    try:
+        # Проверка данных перед обработкой
+        result['conditions_of_medical_care'] = data_excel[0]
+        logger.info(f"Кода вида и условий оказания медицинской помощи "
+                    f"{result['conditions_of_medical_care']}")
+        result['usl_ok'] = 5 - int(data_excel[0][0])
+        logger.info(f"usl_ok: {result['usl_ok']}")
+        result['mocod'] = data_excel[2]
+        logger.info(f"mocod: {result['mocod']}")
+        result['tip'] = data_excel[3]
+        logger.info(f"tip: {result['tip']}")
+        result['patients_name'] = data_excel[1]
+        logger.info(f"ФИО {result['patients_name']}")
+        result['birthday'] = data_excel[4]
+        logger.info(f"Дата рождения {result['birthday']}")
+        result['policy_number'] = data_excel[5]
+        logger.info(f"Номер полиса(ЕНП) {result['policy_number']}")
+        delimiters = r'[()-]'  # Символы-разделители
+        result['medical_care_profile_code'] = \
+            find_medical_doctor_code(re.split(delimiters, data_excel[7]))[0][0]
+        logger.info(f"Код профиля медицинской помощи "
+                    f"{result['medical_care_profile_code']}")
+        result['doctors_specialty_code'] = \
+            find_medical_doctor_code(re.split(delimiters, data_excel[7]))[0][1]
+        logger.info(f"Код специальности врача "
+                    f"{result['doctors_specialty_code']}")
+
+        result['medical_care_profile_name'] = \
+            find_medical_doctor_code(re.split(delimiters, data_excel[7]))[1][0]
+        logger.info(f"Код профиля медицинской помощи "
+                    f"{result['medical_care_profile_code']}")
+        result['doctors_specialty_name'] = \
+            find_medical_doctor_code(re.split(delimiters, data_excel[7]))[1][1]
+        logger.info(f"Код специальности врача "
+                    f"{result['doctors_specialty_code']}")
+        result['subj_n'] = data_excel[6]
+        result['diagnosis'] = data_excel[8]
+        logger.info(f"Диагноз {result['diagnosis']}")
+        result['start_date_of_treatment'] = data_excel[9]
+        logger.info(f"Дата начала лечения {result['start_date_of_treatment']}")
+        result['end_date_of_treatment'] = data_excel[10]
+        logger.info(f"Дата окончания лечения {result['end_date_of_treatment']}")
+        result['treatment_result_code'] = \
+            re.split(delimiters, data_excel[11])[1]
+        logger.info(f"Дата окончания лечения {result['treatment_result_code']}")
+        result['treatment_result_name'] = \
+            re.split(delimiters, data_excel[11])[2]
+        logger.info(f"Дата окончания лечения {result['treatment_result_name']}")
+        result['volume_of_medical_care'] = data_excel[12]
+        logger.info(
+        f"Объёма медицинской помощи {result['volume_of_medical_care']}")
+        result['tariff'] = data_excel[13]
+        logger.info(f"Тариф {result['tariff']}")
+        result['expenses'] = data_excel[14]
+        logger.info(f"Расходы {result['expenses']}")
 
 
 
@@ -531,15 +605,16 @@ def celery_save_second_sheet(invoice_number):
     start_row_index = 3  # Начинаем с 4-й строки (индексация с нуля)
     for row in sheet_list[1].iter_rows(min_row=start_row_index,
                                        values_only=True):
+        print("ROW", row)
         if ( # Записью о ЗЛ считаются те строки в которых:
-                all(element is not None for element in row[0:10])  # нет пустых ячеек в первых 9 столбцах
-                and any(isinstance(element, datetime) for element in row[0:10] )  # Есть ли ячейки с датами
+                # all(element is not None for element in row[0:10])  # нет пустых ячеек в первых 9 столбцах
+                any(isinstance(element, datetime) for element in row[0:10] )  # Есть ли ячейки с датами
                 and len(str(row[0])) >= 3  # в первой ячейке текст больше 3-х символов
         ):
+            invoice.validators.validate_tuple(row)
             data_excel.append(row)
 
     # Установка флага записи в БД, если не установлен ранее
-    print("000000000000")
     if not InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists():
         step_save_ppl = InvoiceInvoiceJobs.objects.create(
             ext_id=item.id,
@@ -549,12 +624,13 @@ def celery_save_second_sheet(invoice_number):
         )
 
     # Извлечение данных по каждому пациенту в БД
-
     count = 0
     for pers in data_excel:
-        print("222222222222", pers)
         # Извлекаем данные из ячеек документа и формируем словарь
-        clear_data = parse_second_sheet(pers)
+        if item.code_fund.name == "ЛНР":
+            clear_data = parse_second_sheet_lnr(pers)
+        elif item.code_fund.name == "ДНР":
+            clear_data = parse_second_sheet(pers)
         count += 1
         # Запись в БД
         try:

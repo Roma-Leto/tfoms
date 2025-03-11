@@ -109,7 +109,7 @@ class InvoiceAttachment(models.Model):
     )
     mocod = models.IntegerField(
         null=True,
-        verbose_name="№ п/п"  # Название поля
+        verbose_name="Номер в сводном реестре медицинских организаций"  # Название поля
     )
     tip = models.CharField(
         max_length=50,
