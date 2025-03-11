@@ -38,7 +38,7 @@ def parse_second_sheet(data_excel):
     :return: словарь result
     """
     result = dict()
-
+    print("parse_second_sheet, data_excel", data_excel)
     try:
         # Проверка данных перед обработкой
         # print("data_excel", data_excel)
@@ -100,7 +100,7 @@ def parse_second_sheet(data_excel):
     except IndexError as e:
         logger.error(f"Ошибка при обработке данных: {e}")
 
-    # logger.info(f"Result: {result}")
+    logger.info(f"Result: {result}")
 
     return result
 
@@ -501,6 +501,8 @@ def celery_save_second_sheet(invoice_number):
     item = InvoiceDNRDetails.objects.get(invoice_number=invoice_number)
     filename = item.file_name.replace(' — ',
                                       '__')  # замена длинного тире на обычный дефис
+    filename = item.file_name.replace(' ',
+                                      '_')  # замена длинного тире на обычный дефис
     file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
     # endregion Поиск и загрузка файла счёта в память
 
@@ -526,13 +528,18 @@ def celery_save_second_sheet(invoice_number):
     # region Сохраняем каждую строку данных в базу данных
     data_excel = list()  # Создаём список для строк документа
     # Пропустим первые три строки
-    start_row_index = 6  # Начинаем с 4-й строки (индексация с нуля)
+    start_row_index = 3  # Начинаем с 4-й строки (индексация с нуля)
     for row in sheet_list[1].iter_rows(min_row=start_row_index,
                                        values_only=True):
-        if not None in row and not 'Х' in row:
+        if ( # Записью о ЗЛ считаются те строки в которых:
+                all(element is not None for element in row[0:10])  # нет пустых ячеек в первых 9 столбцах
+                and any(isinstance(element, datetime) for element in row[0:10] )  # Есть ли ячейки с датами
+                and len(str(row[0])) >= 3  # в первой ячейке текст больше 3-х символов
+        ):
             data_excel.append(row)
 
     # Установка флага записи в БД, если не установлен ранее
+    print("000000000000")
     if not InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists():
         step_save_ppl = InvoiceInvoiceJobs.objects.create(
             ext_id=item.id,
@@ -541,44 +548,47 @@ def celery_save_second_sheet(invoice_number):
             status="Выполняется"
         )
 
-        # Извлечение данных по каждому пациенту в БД
-        count = 0
-        for pers in data_excel:
-            # Извлекаем данные из ячеек документа и формируем словарь
-            clear_data = parse_second_sheet(pers)
-            count += 1
-            # Запись в БД
-            try:
-                InvoiceAttachment.objects.create(
-                    ext_id=InvoiceDNRDetails.objects.latest('id').id,
-                    usl_ok=clear_data['usl_ok'],
-                    mocod=clear_data['mocod'],
-                    tip=clear_data['tip'],
-                    row_id=clear_data['conditions_of_medical_care'],
-                    fio=clear_data['patients_name'],
-                    dr=convert_date(clear_data['birthday']),
-                    enp=int(clear_data['policy_number']),
-                    profil_id=clear_data['medical_care_profile_code'],
-                    spec_id=clear_data['doctors_specialty_code'],
-                    profil_n=clear_data['medical_care_profile_name'],
-                    spec_n=clear_data['doctors_specialty_name'],
-                    subj_n=clear_data['subj_n'],
-                    dz=clear_data['diagnosis'],
-                    date1=convert_date(
-                        clear_data['start_date_of_treatment']),
-                    date2=convert_date(
-                        clear_data['end_date_of_treatment']),
-                    rslt_id=clear_data['treatment_result_code'],
-                    rslt_n=clear_data['treatment_result_name'],
-                    cnt_usl=clear_data['volume_of_medical_care'],
-                    tarif=clear_data['tariff'],
-                    sum_usl=clear_data['expenses']
-                )
-            except IntegrityError as e:
-                logger.info(f"Запись с такими параметрами уже существует. {e}")
-        step_save_ppl.ready = 1
-        step_save_ppl.status = "Выполнено"
-        step_save_ppl.save()
+    # Извлечение данных по каждому пациенту в БД
+
+    count = 0
+    for pers in data_excel:
+        print("222222222222", pers)
+        # Извлекаем данные из ячеек документа и формируем словарь
+        clear_data = parse_second_sheet(pers)
+        count += 1
+        # Запись в БД
+        try:
+            InvoiceAttachment.objects.create(
+                ext_id=InvoiceDNRDetails.objects.latest('id').id,
+                usl_ok=clear_data['usl_ok'],
+                mocod=clear_data['mocod'],
+                tip=clear_data['tip'],
+                row_id=clear_data['conditions_of_medical_care'],
+                fio=clear_data['patients_name'],
+                dr=convert_date(clear_data['birthday']),
+                enp=int(clear_data['policy_number']),
+                profil_id=clear_data['medical_care_profile_code'],
+                spec_id=clear_data['doctors_specialty_code'],
+                profil_n=clear_data['medical_care_profile_name'],
+                spec_n=clear_data['doctors_specialty_name'],
+                subj_n=clear_data['subj_n'],
+                dz=clear_data['diagnosis'],
+                date1=convert_date(
+                    clear_data['start_date_of_treatment']),
+                date2=convert_date(
+                    clear_data['end_date_of_treatment']),
+                rslt_id=clear_data['treatment_result_code'],
+                rslt_n=clear_data['treatment_result_name'],
+                cnt_usl=clear_data['volume_of_medical_care'],
+                tarif=clear_data['tariff'],
+                sum_usl=clear_data['expenses']
+            )
+        except IntegrityError as e:
+            logger.info(f"Запись с такими параметрами уже существует. {e}")
+    InvoiceInvoiceJobs.objects.update(ready=1, status="Выполнено")
+    # step_save_ppl.ready = 1
+    # step_save_ppl.status = "Выполнено"
+    # step_save_ppl.save()
 
     # Вызов процедуры
     call_procedure(item.id)

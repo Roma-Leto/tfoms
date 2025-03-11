@@ -185,7 +185,6 @@ def save_data_from_first_sheet(data_excel: list, file: FileUpload) -> object:
 def save_data_from_first_sheet_lnr(data_excel: list, file: FileUpload) -> object:
     # Извлекаем данные из ячеек документа и формируем словарь
     clear_data = parse_first_sheet_lnr(data_excel, file)
-    print(clear_data)
     code_from_register = RegisterTerritorial.objects.get(
         code=clear_data['code_fund'])
     # Создание записи первой страницы в БД
