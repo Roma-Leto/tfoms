@@ -5,8 +5,8 @@ def validate_tuple(value):
     if not isinstance(value, tuple):
         raise ValidationError('Ожидается кортеж')
 
-    if len(value) != 15:
-        raise ValidationError('Кортеж должен содержать 15 элементов')
+    if len(value) < 15:
+        raise ValidationError(f'Кортеж должен содержать от 15 элементов. {len(value)} элементов')
 
     # Проверка типов данных для каждого элемента
     if not isinstance(value[0], (float, str)):  # Первый элемент может быть float или строкой, представляющей float
