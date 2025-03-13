@@ -272,7 +272,7 @@ class InvoiceInvoiceJobs(models.Model):
     ext = models.ForeignKey('InvoiceDNRDetails', models.DO_NOTHING)
     step = models.ForeignKey('InvoiceInvoicejobSteps', models.DO_NOTHING)
     # status = models.CharField(max_length=255, db_collation='Cyrillic_General_CI_AS')
-    status = models.CharField(max_length=255)
+    status = models.CharField(max_length=2048)
     ready = models.BooleanField()
 
     class Meta:

@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 
 from openpyxl import load_workbook
 from django.contrib.auth.views import LoginView
@@ -17,6 +19,15 @@ logger = logging.getLogger(__name__)
 
 class TLoginView(LoginView):
     template_name = 'registration/login.html'
+
+
+def clean_filename(filename):
+    """
+    Очищает имя файла от специальных символов.
+    """
+    # Убираем все недопустимые символы
+    filename = re.sub(r'[\\/*?:"<>|— -]', '', filename)
+    return filename
 
 @login_required
 def profile(request):
@@ -71,15 +82,28 @@ def profile(request):
             # Создаем объект модели и сохраняем файл
             # Сохранение записи о файле
             try:
-                uploaded_file = FileUpload(parent=item, file=file)
-                file_name = uploaded_file.save()
-                FileUpload.objects.create(
-                    uploaded_at=now(),
-                    file=file_name,
+                # Очищаем имя файла для сохранения на диск
+                cleaned_filename = clean_filename(file.name)
+                file.name = cleaned_filename  # Изменяем имя файла
+
+                # Используем update_or_create для обновления или создания записи
+                uploaded_file, created = FileUpload.objects.update_or_create(
+                    parent=item,  # Условие поиска существующей записи
+                    defaults={
+                        'file': file,  # Поле файла
+                        'uploaded_at': now(),  # Поле даты загрузки
+                    }
                 )
-                logger.info(f"Имя файла {file}. Сохранено")
+
+                # Логируем результат
+                if created:
+                    logger.info(f"Файл {file.name} успешно создан.")
+                else:
+                    logger.info(f"Файл {file.name} успешно обновлён.")
+
             except IntegrityError as e:
-                logger.info(f"Ошибка {e}")
+                # Логируем ошибку, если что-то пошло не так
+                logger.error(f"Ошибка при сохранении файла: {e}")
 
             return redirect('edit-book', item.id)
 

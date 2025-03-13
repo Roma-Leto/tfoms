@@ -3,8 +3,11 @@ import logging
 import re, os
 import json
 import tempfile
+from dbm.dumb import error
+from fileinput import filename
 
 from django.core.files import File
+from django.http import HttpResponse
 # from msilib.schema import Font
 
 from openpyxl.styles import Font
@@ -31,10 +34,11 @@ logger = logging.getLogger(__name__)
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-def parse_second_sheet(data_excel):
+def parse_second_sheet(data_excel, item_id):
     """
     Функция парсинга excel-файла
     :param data_excel: кортеж данных, извлечённых со страницы документа
+    :param item_id: id документа к которому привязан файл
     :return: словарь result
     """
     result = dict()
@@ -98,7 +102,11 @@ def parse_second_sheet(data_excel):
 
 
     except IndexError as e:
+        logger.error(f"Ошибка при обработке данных - {e}")
+    except KeyError as e:
         logger.error(f"Ошибка при обработке данных: {e}")
+        InvoiceInvoiceJobs.objects.filter(ext_id=item_id, step_id=1).update(status=f"Ошибка {e}")
+
 
     # logger.info(f"Result: {result}")
 
@@ -303,6 +311,7 @@ def create_report(ext_id):
     # Начальная строка для вставки данных в отчёт
     starting_row = 3
 
+
     # Перебираем все ЗЛ
     for item in policyholder:
         id_item = item.id
@@ -352,13 +361,16 @@ def create_report(ext_id):
 
         # print(string_result)
 
-
-
+        # counter_policyholder = 0
         # Цикл для вставки данных построчно
         for col_num, value in enumerate(string_result, start=1):
-            ws.cell(row=starting_row, column=col_num).value = value
 
+            ws.cell(row=starting_row, column=col_num).value = value
         starting_row += 1
+        logger.info(f"counter_policyholder {starting_row}")
+        # counter_policyholder += 1
+        (InvoiceInvoiceJobs.objects.filter(ext_id=item.ext_id, step_id=5).
+         update(status=f"Записано {starting_row} из {len(policyholder)}"))
     # endregion Формирование строки-записи документа. Страница 1
 
     # region Формирование справочника документа. Страница 2
@@ -500,11 +512,16 @@ def celery_save_second_sheet(invoice_number):
     logger.info("celery_save_second_sheet start")
     # region Поиск и загрузка файла счёта в память
     item = InvoiceDNRDetails.objects.get(invoice_number=invoice_number)
-    filename = item.file_name.replace(' — ',
-                                      '__')  # замена длинного тире на обычный дефис
-    file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
+    # filename = item.file_name.replace(' — ',
+    #                                   '__')  # замена длинного тире на обычный дефис
+    # filename = item.file_name.replace(' ',
+    #                                   '')  # замена длинного тире на обычный дефис
+    filename = FileUpload.objects.get(parent_id=item.id)
+    print("dsadasdas", filename, filename.file, filename.file.name)
+    # file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename.file.name)
+    file_path = os.path.join(settings.MEDIA_ROOT, filename.file.name)
     # endregion Поиск и загрузка файла счёта в память
-
+    # print('file_path', file_path)
     # region Проверка открытия файла отчёта
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Файл не найден: {file_path}")
@@ -548,10 +565,12 @@ def celery_save_second_sheet(invoice_number):
     # print("data_excel in if", data_excel)
     # Извлечение данных по каждому пациенту в БД
     count = 0
+    error = 0  # Флаг ошибки обработки строк данных
+
     for pers in data_excel:
         # print('pers', pers)
         # Извлекаем данные из ячеек документа и формируем словарь
-        clear_data = parse_second_sheet(pers)
+        clear_data = parse_second_sheet(pers, item.id)
         count += 1
         InvoiceInvoiceJobs.objects.filter(ext_id=item.id, step_id=1).update(status=f"Готово {count} из {len_data}")
         # Запись в БД
@@ -583,10 +602,21 @@ def celery_save_second_sheet(invoice_number):
             )
         except IntegrityError as e:
             logger.info(f"Запись с такими параметрами уже существует. {e}")
-    InvoiceInvoiceJobs.objects.filter(ext_id=item.id, step_id=1).update(
-        status="Выполнено",
-        ready=1
-    )
+        except KeyError as e:
+            logger.error(f"Ошибка при обработке данных: {e}")
+            InvoiceInvoiceJobs.objects.filter(
+                ext_id=item.id,
+                step_id=1
+            ).update(
+                status=f"Ошибка данных {e} в {pers}"
+            )
+            error = 1
+            break
+    if not error:
+        InvoiceInvoiceJobs.objects.filter(ext_id=item.id, step_id=1).update(
+            status="Выполнено",
+            ready=1
+        )
 
     # Вызов процедуры
     call_procedure(item.id)
