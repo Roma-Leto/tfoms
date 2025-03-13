@@ -41,7 +41,7 @@ def parse_second_sheet(data_excel):
 
     try:
         # Проверка данных перед обработкой
-        # print("data_excel", data_excel)
+        print("data_excel parse_second_sheet", data_excel)
         # if len(data_excel) > 0 and len(data_excel[0]) > 14:
         if True:
             result['conditions_of_medical_care'] = data_excel[0]
@@ -111,13 +111,13 @@ def convert_date(report_date_str) -> datetime.date:
     :param report_date_str: Строка в формате dd.mm.yyyy
     :return report_date: Дата в формате YYYY-MM-DD
     """
-    try:
-        # Преобразуем строку в объект datetime
-        report_date = datetime.strptime(report_date_str, "%d.%m.%Y").date()
-        return report_date
-    except ValueError as e:
-        print(f"Неверный формат даты: {e}")
-        return False
+    if isinstance(report_date_str, datetime):
+        return report_date_str.date()
+    elif isinstance(report_date_str, str):
+        return datetime.strptime(report_date_str, "%d.%m.%Y").date()
+    else:
+        raise ValueError("Неподдерживаемый тип данных для report_date_str")
+
 
 
 def find_medical_doctor_code(lst: list):
@@ -444,7 +444,7 @@ def create_report(ext_id):
         for y in x.values():
             sum_step.append(y)
         sum_result.append(sum_step)
-    print(sum_result)
+    # print(sum_result)
 
     for row_index, row_data in enumerate(sum_result, start=5):
         for col_index, col_value in enumerate(row_data, start=1):
@@ -463,7 +463,7 @@ def create_report(ext_id):
 
 
     status4 = InvoiceInvoiceJobs.objects.get(ext_id=ext_id, step_id=4)
-    print(status4)
+    # print(status4)
     if status4.ready:
         file_path = "report_test.xlsx"
 
@@ -497,6 +497,7 @@ def celery_save_second_sheet(invoice_number):
     Парсинг и сохранения данных второго листа отчёта
     :return:
     """
+    logger.info("celery_save_second_sheet start")
     # region Поиск и загрузка файла счёта в память
     item = InvoiceDNRDetails.objects.get(invoice_number=invoice_number)
     filename = item.file_name.replace(' — ',
@@ -516,6 +517,7 @@ def celery_save_second_sheet(invoice_number):
     # region Формируем список листов
     # Загрузка Excel-файла с помощью openpyxl
     workbook = load_workbook(file_path, data_only=True)
+    # logger.info(f"workbook - {workbook}")
     sheet_list = list()
     for sheet_name in workbook.sheetnames:
         sheet = workbook[sheet_name]  # Получаем лист по имени
@@ -531,8 +533,9 @@ def celery_save_second_sheet(invoice_number):
                                        values_only=True):
         if not None in row and not 'Х' in row:
             data_excel.append(row)
-
+    # logger.info(f"data_excel - {data_excel}")
     # Установка флага записи в БД, если не установлен ранее
+    logger.info(f"InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists() - {InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists()}")
     if not InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists():
         step_save_ppl = InvoiceInvoiceJobs.objects.create(
             ext_id=item.id,
@@ -540,45 +543,48 @@ def celery_save_second_sheet(invoice_number):
             ready=0,
             status="Выполняется"
         )
-
-        # Извлечение данных по каждому пациенту в БД
-        count = 0
-        for pers in data_excel:
-            # Извлекаем данные из ячеек документа и формируем словарь
-            clear_data = parse_second_sheet(pers)
-            count += 1
-            # Запись в БД
-            try:
-                InvoiceAttachment.objects.create(
-                    ext_id=InvoiceDNRDetails.objects.latest('id').id,
-                    usl_ok=clear_data['usl_ok'],
-                    mocod=clear_data['mocod'],
-                    tip=clear_data['tip'],
-                    row_id=clear_data['conditions_of_medical_care'],
-                    fio=clear_data['patients_name'],
-                    dr=convert_date(clear_data['birthday']),
-                    enp=int(clear_data['policy_number']),
-                    profil_id=clear_data['medical_care_profile_code'],
-                    spec_id=clear_data['doctors_specialty_code'],
-                    profil_n=clear_data['medical_care_profile_name'],
-                    spec_n=clear_data['doctors_specialty_name'],
-                    subj_n=clear_data['subj_n'],
-                    dz=clear_data['diagnosis'],
-                    date1=convert_date(
-                        clear_data['start_date_of_treatment']),
-                    date2=convert_date(
-                        clear_data['end_date_of_treatment']),
-                    rslt_id=clear_data['treatment_result_code'],
-                    rslt_n=clear_data['treatment_result_name'],
-                    cnt_usl=clear_data['volume_of_medical_care'],
-                    tarif=clear_data['tariff'],
-                    sum_usl=clear_data['expenses']
-                )
-            except IntegrityError as e:
-                logger.info(f"Запись с такими параметрами уже существует. {e}")
-        step_save_ppl.ready = 1
-        step_save_ppl.status = "Выполнено"
-        step_save_ppl.save()
+    # logger.info(f"data_excel in if: {data_excel}")
+    # print("data_excel in if", data_excel)
+    # Извлечение данных по каждому пациенту в БД
+    count = 0
+    for pers in data_excel:
+        # print('pers', pers)
+        # Извлекаем данные из ячеек документа и формируем словарь
+        clear_data = parse_second_sheet(pers)
+        count += 1
+        # print("clear_data", clear_data)
+        # Запись в БД
+        try:
+            InvoiceAttachment.objects.create(
+                ext_id=InvoiceDNRDetails.objects.latest('id').id,
+                usl_ok=clear_data['usl_ok'],
+                mocod=clear_data['mocod'],
+                tip=clear_data['tip'],
+                row_id=clear_data['conditions_of_medical_care'],
+                fio=clear_data['patients_name'],
+                dr=convert_date(clear_data['birthday']),
+                enp=int(clear_data['policy_number']),
+                profil_id=clear_data['medical_care_profile_code'],
+                spec_id=clear_data['doctors_specialty_code'],
+                profil_n=clear_data['medical_care_profile_name'],
+                spec_n=clear_data['doctors_specialty_name'],
+                subj_n=clear_data['subj_n'],
+                dz=clear_data['diagnosis'],
+                date1=convert_date(
+                    clear_data['start_date_of_treatment']),
+                date2=convert_date(
+                    clear_data['end_date_of_treatment']),
+                rslt_id=clear_data['treatment_result_code'],
+                rslt_n=clear_data['treatment_result_name'],
+                cnt_usl=clear_data['volume_of_medical_care'],
+                tarif=clear_data['tariff'],
+                sum_usl=clear_data['expenses']
+            )
+        except IntegrityError as e:
+            logger.info(f"Запись с такими параметрами уже существует. {e}")
+    step_save_ppl.ready = 1
+    step_save_ppl.status = "Выполнено"
+    step_save_ppl.save()
 
     # Вызов процедуры
     call_procedure(item.id)
