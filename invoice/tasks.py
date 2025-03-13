@@ -533,17 +533,18 @@ def celery_save_second_sheet(invoice_number):
                                        values_only=True):
         if not None in row and not 'Х' in row:
             data_excel.append(row)
-    # logger.info(f"data_excel - {data_excel}")
+    len_data = len(data_excel)
     # Установка флага записи в БД, если не установлен ранее
     logger.info(f"InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists() - {InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists()}")
+    logger.info(f"ext_id=item.id - {item.id}")
+
     if not InvoiceInvoiceJobs.objects.filter(ext_id=item.id).exists():
-        step_save_ppl = InvoiceInvoiceJobs.objects.create(
+        InvoiceInvoiceJobs.objects.create(
             ext_id=item.id,
             step_id=1,
             ready=0,
-            status="Выполняется"
+            status=f"Готово 0 из {len_data}"
         )
-    # logger.info(f"data_excel in if: {data_excel}")
     # print("data_excel in if", data_excel)
     # Извлечение данных по каждому пациенту в БД
     count = 0
@@ -552,7 +553,7 @@ def celery_save_second_sheet(invoice_number):
         # Извлекаем данные из ячеек документа и формируем словарь
         clear_data = parse_second_sheet(pers)
         count += 1
-        # print("clear_data", clear_data)
+        InvoiceInvoiceJobs.objects.filter(ext_id=item.id, step_id=1).update(status=f"Готово {count} из {len_data}")
         # Запись в БД
         try:
             InvoiceAttachment.objects.create(
@@ -582,9 +583,10 @@ def celery_save_second_sheet(invoice_number):
             )
         except IntegrityError as e:
             logger.info(f"Запись с такими параметрами уже существует. {e}")
-    step_save_ppl.ready = 1
-    step_save_ppl.status = "Выполнено"
-    step_save_ppl.save()
+    InvoiceInvoiceJobs.objects.filter(ext_id=item.id, step_id=1).update(
+        status="Выполнено",
+        ready=1
+    )
 
     # Вызов процедуры
     call_procedure(item.id)
