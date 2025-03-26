@@ -24,19 +24,19 @@ class InvoiceDNRDetails(models.Model):
     mouth_of_invoice_receipt = models.IntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
-        verbose_name="Месяц поступления счёта"  # Название поля
+        verbose_name="Месяц отчётного периода"  # Название поля
     )
     # Поле даты поступления счёта
     year_of_invoice_receipt = models.IntegerField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
-        verbose_name="Год поступления счёта"  # Название поля
+        verbose_name="Год отчётного периода"  # Название поля
     )
     # Поле даты отчётного периода
     date_of_reporting_period = models.DateField(
         null=False,  # Поле не может быть NULL
         blank=False,  # Поле не может быть пустым
-        verbose_name="Дата отчётного периода"  # Название поля
+        verbose_name="Дата поступления счёта"  # Название поля
     )
     # Поле кода территориального фонда
     code_fund = models.ForeignKey(

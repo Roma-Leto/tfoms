@@ -5,6 +5,7 @@
 0. Виртуальное окружение
 ```bash
 python venv .venv
+source .venv/bin/activate
 ```
 
 1. Пакеты для виртуального окружения
@@ -45,6 +46,7 @@ git rm --cached .idea -rf
 6. Запуск Redis (контейнер Docker)
 ```bash
 sudo docker start redis
+celery -A x_tfoms_project worker -l INFO
 ```
 
 Подключение и проверка работы Redis
@@ -58,4 +60,20 @@ exit
 Узнать адрес Docker-контейнера Redis
 ```bash
 docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' redis
+```
+
+Запуск проекта Django
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+Админ-панель
+```bash
+http://127.0.0.1:8000/admin/
+```
+
+Git
+```bash
+https://github.com/Roma-Leto/tfoms
+https://github.com/Roma-Leto/tfoms.git
 ```

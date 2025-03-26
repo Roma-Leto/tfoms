@@ -1,32 +1,32 @@
 # region Imports
 import logging
 import re, os
-import json
+# import json
 import tempfile
-from dbm.dumb import error
-from fileinput import filename
+# from dbm.dumb import error
+# from fileinput import filename
 
 from django.core.files import File
-from django.http import HttpResponse
+# from django.http import HttpResponse
 # from msilib.schema import Font
 
 from openpyxl.styles import Font
-import openpyxl.cell.cell
+# import openpyxl.cell.cell
 from django.db.models.expressions import result, F
 from openpyxl import Workbook
 from celery import shared_task
 from pathlib import Path
 from openpyxl import load_workbook
-from django.shortcuts import redirect
+# from django.shortcuts import redirect
 from datetime import datetime
 from django.db import IntegrityError, connection
 from openpyxl.styles import Alignment
-from openpyxl.styles.builtins import title
+# from openpyxl.styles.builtins import title
 from openpyxl.utils import get_column_letter, column_index_from_string
 
 # from utilities import timer
 from x_tfoms_project import settings
-from invoice.models import InvoiceDNRDetails, InvoiceAttachment, InvoiceInvoiceJobs, InvoiceInvoiceJobSteps, FileUpload
+from invoice.models import InvoiceDNRDetails, InvoiceAttachment, InvoiceInvoiceJobs, FileUpload
 
 # endregion Imports
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def parse_second_sheet(data_excel, item_id):
 
     try:
         # Проверка данных перед обработкой
-        print("data_excel parse_second_sheet", data_excel)
+        # print("data_excel parse_second_sheet", data_excel)
         # if len(data_excel) > 0 and len(data_excel[0]) > 14:
         if True:
             result['conditions_of_medical_care'] = data_excel[0]
@@ -166,7 +166,7 @@ def call_procedure(ext_id):
 
 
 def get_errors(id):
-    """Функция извлекает данные из поля errore_list таблицы invoice_errors"""
+    """Функция извлекает данные из поля error_list таблицы invoice_errors"""
     with connection.cursor() as cursor:
         query = """
             SELECT *
@@ -303,7 +303,7 @@ def create_report(ext_id):
 
     # endregion Формирование шапки документа
 
-    # region Формирование строки-записи документа. Страница 1
+    #region Формирование строки-записи документа. Страница 1
 
     # Получаем всех ЗЛ из документа (по ext_id)
     policyholder = InvoiceAttachment.objects.filter(ext_id=ext_id)
@@ -335,7 +335,7 @@ def create_report(ext_id):
             item.fio,
             item.mocod,
             item.dr,
-            item.enp,
+            str(item.enp),  # Проблема мантиссы
             item.profil_id,
             item.profil_n,
             item.spec_id,
@@ -371,9 +371,9 @@ def create_report(ext_id):
         # counter_policyholder += 1
         (InvoiceInvoiceJobs.objects.filter(ext_id=item.ext_id, step_id=5).
          update(status=f"Записано {starting_row} из {len(policyholder)}"))
-    # endregion Формирование строки-записи документа. Страница 1
+    #endregion Формирование строки-записи документа. Страница 1
 
-    # region Формирование справочника документа. Страница 2
+    #region Формирование справочника документа. Страница 2
 
     title_ws2 = [[
         '№',
@@ -446,7 +446,10 @@ def create_report(ext_id):
 
     from django.db.models import Sum
 
-    sum_by_category = InvoiceAttachment.objects.values('usl_ok').annotate(total_usl=Sum('cnt_usl'), total_sum=Sum(F('cnt_usl') * F('tarif')))
+    sum_by_category = InvoiceAttachment.objects.values('usl_ok').annotate(
+        total_usl=Sum('cnt_usl'),
+        total_sum=Sum(F('cnt_usl') * F('tarif'))
+    )
 
 
 
@@ -510,18 +513,13 @@ def celery_save_second_sheet(invoice_number):
     :return:
     """
     logger.info("celery_save_second_sheet start")
+
     # region Поиск и загрузка файла счёта в память
     item = InvoiceDNRDetails.objects.get(invoice_number=invoice_number)
-    # filename = item.file_name.replace(' — ',
-    #                                   '__')  # замена длинного тире на обычный дефис
-    # filename = item.file_name.replace(' ',
-    #                                   '')  # замена длинного тире на обычный дефис
     filename = FileUpload.objects.get(parent_id=item.id)
-    print("dsadasdas", filename, filename.file, filename.file.name)
-    # file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename.file.name)
     file_path = os.path.join(settings.MEDIA_ROOT, filename.file.name)
     # endregion Поиск и загрузка файла счёта в память
-    # print('file_path', file_path)
+
     # region Проверка открытия файла отчёта
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Файл не найден: {file_path}")
@@ -562,7 +560,7 @@ def celery_save_second_sheet(invoice_number):
             ready=0,
             status=f"Готово 0 из {len_data}"
         )
-    # print("data_excel in if", data_excel)
+
     # Извлечение данных по каждому пациенту в БД
     count = 0
     error = 0  # Флаг ошибки обработки строк данных
